@@ -1,5 +1,8 @@
 [gd_scene format=3 uid="uid://bfxttvrxqsha2"]
 
+[ext_resource type="Script" uid="uid://cwr2mfqmgmarp" path="res://scenes/gameplay/MainGame.gd" id="1_bov8g"]
+[ext_resource type="PackedScene" uid="uid://lmlv24brci8d" path="res://scenes/ui/TriviaModal.tscn" id="1_lxcse"]
+
 [node name="MainGame" type="Control" unique_id=1649907951]
 layout_mode = 3
 anchors_preset = 15
@@ -7,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_bov8g")
 
 [node name="Background" type="ColorRect" parent="." unique_id=571933045]
 layout_mode = 1
@@ -55,16 +59,60 @@ layout_mode = 2
 [node name="TombolaSection" type="PanelContainer" parent="SafeArea/MainLayout" unique_id=1046161008]
 layout_mode = 2
 
-[node name="TombolaVBox" type="VBoxContainer" parent="SafeArea/MainLayout/TombolaSection" unique_id=1972154466]
+[node name="Margin" type="MarginContainer" parent="SafeArea/MainLayout/TombolaSection" unique_id=1070988074]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 24
+
+[node name="TombolaVBox" type="VBoxContainer" parent="SafeArea/MainLayout/TombolaSection/Margin" unique_id=1745502027]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="HeaderLabel" type="Label" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox" unique_id=211697583]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "TÓMBOLA EN VIVO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BallDisplay" type="CenterContainer" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox" unique_id=291168404]
+custom_minimum_size = Vector2(0, 190)
 layout_mode = 2
 
-[node name="LblCurrentBall" type="Label" parent="SafeArea/MainLayout/TombolaSection/TombolaVBox" unique_id=536279726]
+[node name="BallCircle" type="PanelContainer" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay" unique_id=128440816]
+custom_minimum_size = Vector2(180, 180)
 layout_mode = 2
-text = "ÚLTIMA BALOTA: --"
+
+[node name="BallVBox" type="VBoxContainer" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle" unique_id=2118385125]
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="LblBallLetter" type="Label" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox" unique_id=1043637304]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "BINGO"
 horizontal_alignment = 1
 
-[node name="BtnDrawBall" type="Button" parent="SafeArea/MainLayout/TombolaSection/TombolaVBox" unique_id=1131482729]
+[node name="LblBallNumber" type="Label" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox" unique_id=739352117]
 layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "--"
+horizontal_alignment = 1
+
+[node name="RecentBallsRack" type="HBoxContainer" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox" unique_id=455819064]
+custom_minimum_size = Vector2(0, 55)
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnDrawBall" type="Button" parent="SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox" unique_id=1107742484]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
 text = "GIRAR TÓMBOLA"
 
 [node name="BoardContainer" type="CenterContainer" parent="SafeArea/MainLayout" unique_id=510798811]
@@ -72,14 +120,29 @@ layout_mode = 2
 
 [node name="CardGrid" type="GridContainer" parent="SafeArea/MainLayout/BoardContainer" unique_id=214761335]
 layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 5
+
+[node name="SpacerBottom" type="Control" parent="SafeArea/MainLayout" unique_id=296552786]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="Actions" type="HBoxContainer" parent="SafeArea/MainLayout" unique_id=1485687007]
 layout_mode = 2
 
 [node name="BtnBingo" type="Button" parent="SafeArea/MainLayout/Actions" unique_id=1137381177]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
+size_flags_horizontal = 3
+text = "¡CANTAR BINGO!"
 
 [node name="BtnChangeEnv" type="Button" parent="SafeArea/MainLayout/Actions" unique_id=1144024632]
+custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
+size_flags_horizontal = 3
+text = "CAMBIAR AMBIENTE"
 
 [node name="UIOverlay" type="CanvasLayer" parent="." unique_id=1745047755]
+
+[node name="TriviaModal" parent="UIOverlay" unique_id=2139220717 instance=ExtResource("1_lxcse")]

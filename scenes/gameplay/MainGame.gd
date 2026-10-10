@@ -1,0 +1,278 @@
+extends Control
+
+# Referencias UI - HUD
+@onready var background: ColorRect = $Background
+@onready var lbl_lives: Label = $SafeArea/MainLayout/HUD/LblLives
+@onready var lbl_coins: Label = $SafeArea/MainLayout/HUD/LblCoins
+@onready var lbl_stars: Label = $SafeArea/MainLayout/HUD/LblStars
+
+# Referencias UI - Tómbola
+@onready var tombola_section: PanelContainer = $SafeArea/MainLayout/TombolaSection
+@onready var ball_circle: PanelContainer = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle
+@onready var lbl_ball_letter: Label = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox/LblBallLetter
+@onready var lbl_ball_number: Label = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox/LblBallNumber
+@onready var recent_balls_rack: HBoxContainer = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/RecentBallsRack
+@onready var btn_draw_ball: Button = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BtnDrawBall
+
+# Referencias UI - Tablero y Acciones
+@onready var card_grid: GridContainer = $SafeArea/MainLayout/BoardContainer/CardGrid
+@onready var btn_bingo: Button = $SafeArea/MainLayout/Actions/BtnBingo
+@onready var btn_change_env: Button = $SafeArea/MainLayout/Actions/BtnChangeEnv
+@onready var trivia_modal: Control = $UIOverlay/TriviaModal
+
+# Instancias Lógicas
+var tombola: BingoTombola
+var card: BingoCard
+var trivia_manager: TriviaManager
+
+var cell_buttons: Array = []
+var recent_balls: Array[int] = []
+
+
+func _ready() -> void:
+	tombola = BingoTombola.new()
+	card = BingoCard.new()
+	trivia_manager = TriviaManager.new()
+
+	# Conexiones
+	GameManager.lives_changed.connect(_update_hud)
+	GameManager.coins_changed.connect(_update_hud)
+	GameManager.stars_changed.connect(_update_hud)
+	GameManager.environment_changed.connect(_on_environment_changed)
+
+	btn_draw_ball.pressed.connect(_on_btn_draw_ball_pressed)
+	btn_bingo.pressed.connect(_on_btn_bingo_pressed)
+	btn_change_env.pressed.connect(_on_btn_change_env_pressed)
+	trivia_modal.trivia_answered.connect(_on_trivia_answered)
+
+	_setup_pro_styles()
+	_build_visual_grid()
+	_apply_environment(GameManager.current_environment)
+	_update_hud()
+
+
+## Aplica estilos de diseño modernos mediante código
+func _setup_pro_styles() -> void:
+	# 1. Panel de la Tómbola (Contenedor con esquinas redondeadas y sombra)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.1, 0.12, 0.16, 0.85)
+	panel_style.corner_radius_top_left = 24
+	panel_style.corner_radius_top_right = 24
+	panel_style.corner_radius_bottom_left = 24
+	panel_style.corner_radius_bottom_right = 24
+	panel_style.shadow_color = Color(0, 0, 0, 0.45)
+	panel_style.shadow_size = 12
+	panel_style.shadow_offset = Vector2(0, 6)
+	tombola_section.add_theme_stylebox_override("panel", panel_style)
+
+	# 2. La Balota Principal (Círculo tridimensional con brillo)
+	ball_circle.custom_minimum_size = Vector2(180, 180)
+	ball_circle.pivot_offset = Vector2(90, 90) # Pivote centrado para animaciones de escala
+	_style_ball(ball_circle, Color("#3a4454"), Color("#5a6982"))
+
+	lbl_ball_letter.text = "BINGO"
+	lbl_ball_letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_ball_letter.add_theme_font_size_override("font_size", 22)
+
+	lbl_ball_number.text = "--"
+	lbl_ball_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_ball_number.add_theme_font_size_override("font_size", 64)
+
+	# 3. Botón de Giro (Pill Shape arcade)
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color("#2ecc71")
+	btn_style.corner_radius_top_left = 30
+	btn_style.corner_radius_top_right = 30
+	btn_style.corner_radius_bottom_left = 30
+	btn_style.corner_radius_bottom_right = 30
+	btn_style.shadow_color = Color(0, 0, 0, 0.3)
+	btn_style.shadow_size = 6
+	btn_style.shadow_offset = Vector2(0, 4)
+	btn_draw_ball.add_theme_stylebox_override("normal", btn_style)
+	btn_draw_ball.add_theme_font_size_override("font_size", 26)
+	btn_draw_ball.custom_minimum_size = Vector2(0, 75)
+
+	recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
+
+
+## Genera un diseño circular con bisel para una balota
+func _style_ball(panel: PanelContainer, fill_color: Color, border_color: Color) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.border_width_left = 6
+	style.border_width_top = 6
+	style.border_width_right = 6
+	style.border_width_bottom = 6
+	style.border_color = border_color
+	# Radio al 50% del tamaño genera un círculo perfecto
+	style.corner_radius_top_left = 100
+	style.corner_radius_top_right = 100
+	style.corner_radius_bottom_left = 100
+	style.corner_radius_bottom_right = 100
+	style.shadow_color = Color(0, 0, 0, 0.4)
+	style.shadow_size = 10
+	style.shadow_offset = Vector2(0, 5)
+	panel.add_theme_stylebox_override("panel", style)
+
+
+## Obtiene la letra y paleta según el rango de Bingo
+func _get_ball_info(num: int) -> Dictionary:
+	if num <= 15:
+		return {"letter": "B", "color": Color("#2980b9"), "border": Color("#5dade2")}
+	elif num <= 30:
+		return {"letter": "I", "color": Color("#c0392b"), "border": Color("#e74c3c")}
+	elif num <= 45:
+		return {"letter": "N", "color": Color("#d35400"), "border": Color("#f39c12")}
+	elif num <= 60:
+		return {"letter": "G", "color": Color("#27ae60"), "border": Color("#2ecc71")}
+	else:
+		return {"letter": "O", "color": Color("#8e44ad"), "border": Color("#bb8fce")}
+
+
+func _on_btn_draw_ball_pressed() -> void:
+	var ball: int = tombola.draw_next_ball()
+	if ball == -1:
+		lbl_ball_number.text = "FIN"
+		btn_draw_ball.disabled = true
+		return
+
+	var info: Dictionary = _get_ball_info(ball)
+	lbl_ball_letter.text = info["letter"]
+	lbl_ball_number.text = "%02d" % ball
+	_style_ball(ball_circle, info["color"], info["border"])
+
+	# Animación de Rebote (Juice)
+	var tween := create_tween()
+	ball_circle.scale = Vector2(0.5, 0.5)
+	tween.tween_property(ball_circle, "scale", Vector2(1.15, 1.15), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
+
+	# Actualizar bandeja de mini-balotas
+	recent_balls.push_front(ball)
+	if recent_balls.size() > 5:
+		recent_balls.pop_back()
+	_update_recent_balls_rack()
+
+	if randf() <= 0.20:
+		_trigger_trivia()
+
+
+## Actualiza la bandeja de mini-balotas previas
+func _update_recent_balls_rack() -> void:
+	for c in recent_balls_rack.get_children():
+		c.queue_free()
+
+	for i in range(1, recent_balls.size()):
+		var past_ball: int = recent_balls[i]
+		var info: Dictionary = _get_ball_info(past_ball)
+
+		var mini_ball := PanelContainer.new()
+		mini_ball.custom_minimum_size = Vector2(50, 50)
+		_style_ball(mini_ball, info["color"], info["border"])
+
+		var lbl := Label.new()
+		lbl.text = str(past_ball)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 18)
+
+		mini_ball.add_child(lbl)
+		recent_balls_rack.add_child(mini_ball)
+
+
+func _build_visual_grid() -> void:
+	for child in card_grid.get_children():
+		child.queue_free()
+	cell_buttons.clear()
+
+	var letters: Array[String] = ["B", "I", "N", "G", "O"]
+	for letter in letters:
+		var lbl := Label.new()
+		lbl.text = letter
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.custom_minimum_size = Vector2(170, 60)
+		lbl.add_theme_font_size_override("font_size", 38)
+		card_grid.add_child(lbl)
+
+	for r in range(5):
+		var row_btns: Array[Button] = []
+		for c in range(5):
+			var btn := Button.new()
+			btn.custom_minimum_size = Vector2(170, 170)
+			btn.add_theme_font_size_override("font_size", 34)
+
+			var num: int = card.grid[r][c]
+			if r == 2 and c == 2:
+				btn.text = "★\nLIBRE"
+				btn.disabled = true
+			else:
+				btn.text = str(num)
+				btn.pressed.connect(func(): _on_cell_pressed(r, c, btn))
+
+			card_grid.add_child(btn)
+			row_btns.append(btn)
+		cell_buttons.append(row_btns)
+
+
+func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
+	var cell_number: int = card.grid[row][col]
+	if tombola.has_been_drawn(cell_number):
+		if card.mark_cell(row, col):
+			btn.disabled = true
+			btn.text = str(cell_number) + "\n✔"
+			GameManager.add_coins(10)
+	else:
+		GameManager.lose_life()
+
+
+func _trigger_trivia() -> void:
+	var question_data: Dictionary = trivia_manager.get_random_question()
+	if not question_data.is_empty():
+		trivia_modal.open_trivia(question_data)
+
+
+func _on_trivia_answered(success: bool) -> void:
+	if success:
+		lbl_ball_letter.text = "¡BONUS!"
+
+
+func _on_btn_bingo_pressed() -> void:
+	var win_data: Dictionary = card.check_win_patterns()
+	if win_data["has_won"]:
+		lbl_ball_letter.text = "¡GANASTE!"
+		lbl_ball_number.text = "BINGO"
+		GameManager.add_stars(5)
+		GameManager.add_coins(200)
+		btn_bingo.disabled = true
+	else:
+		GameManager.lose_life()
+
+
+func _on_btn_change_env_pressed() -> void:
+	if GameManager.current_environment == GameManager.GameEnvironment.LOGIC_ACADEMY:
+		GameManager.set_environment(GameManager.GameEnvironment.CYBER_CASINO)
+	else:
+		GameManager.set_environment(GameManager.GameEnvironment.LOGIC_ACADEMY)
+
+
+func _on_environment_changed(_env_name: String) -> void:
+	_apply_environment(GameManager.current_environment)
+
+
+func _apply_environment(env: GameManager.GameEnvironment) -> void:
+	match env:
+		GameManager.GameEnvironment.LOGIC_ACADEMY:
+			background.color = Color("#16291b")
+			btn_bingo.modulate = Color("#e5c158")
+			btn_change_env.modulate = Color("#ffffff")
+		GameManager.GameEnvironment.CYBER_CASINO:
+			background.color = Color("#0a0a16")
+			btn_bingo.modulate = Color("#ff007f")
+			btn_change_env.modulate = Color("#00e5ff")
+
+
+func _update_hud(_val: int = 0) -> void:
+	lbl_lives.text = "❤ %d/%d" % [GameManager.lives, GameManager.MAX_LIVES]
+	lbl_coins.text = "🪙 %d" % GameManager.coins
+	lbl_stars.text = "⭐ %d" % GameManager.stars
