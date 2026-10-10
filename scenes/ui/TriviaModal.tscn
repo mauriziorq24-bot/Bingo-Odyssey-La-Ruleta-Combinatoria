@@ -10,7 +10,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_5rah6")
-metadata/_edit_use_anchors_ = true
 
 [node name="BackgroundDim" type="ColorRect" parent="." unique_id=561588628]
 layout_mode = 1
@@ -20,6 +19,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.69803923)
+metadata/_edit_use_anchors_ = true
 
 [node name="ModalContainer" type="PanelContainer" parent="." unique_id=1423060631]
 custom_minimum_size = Vector2(800, 0)
@@ -54,9 +54,10 @@ custom_minimum_size = Vector2(720, 0)
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="TimerBar" type="TextureProgressBar" parent="ModalContainer/MarginContainer/VBox" unique_id=2099989843]
+[node name="TimerBar" type="ProgressBar" parent="ModalContainer/MarginContainer/VBox" unique_id=775426869]
 custom_minimum_size = Vector2(0, 25)
 layout_mode = 2
+show_percentage = false
 
 [node name="Option0" type="Button" parent="ModalContainer/MarginContainer/VBox" unique_id=114505410]
 layout_mode = 2

@@ -21,7 +21,6 @@ var is_active: bool = false
 
 func _ready() -> void:
 	visible = false
-	timer_bar.show_percentage = false
 	for i in range(option_buttons.size()):
 		var idx: int = i
 		option_buttons[idx].pressed.connect(func(): _on_option_selected(idx))
