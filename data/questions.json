@@ -1,0 +1,70 @@
+[
+  {
+	"id": 1,
+	"category": "Combinatoria",
+	"question": "¿De cuántas formas distintas pueden sentarse 4 personas en una fila de 4 sillas? (Permutación P4)",
+	"options": ["12", "16", "24", "48"],
+	"correct_index": 2,
+	"reward_coins": 30,
+	"reward_stars": 1
+  },
+  {
+	"id": 2,
+	"category": "Combinatoria",
+	"question": "En una carrera de 6 corredores, ¿de cuántas formas se puede premiar Oro y Plata? (Variación V(6,2))",
+	"options": ["30", "15", "36", "12"],
+	"correct_index": 0,
+	"reward_coins": 40,
+	"reward_stars": 1
+  },
+  {
+	"id": 3,
+	"category": "Combinatoria",
+	"question": "De un grupo de 5 personas se elegirá un comité de 3. ¿Cuántos comités posibles hay? (Combinación C(5,3))",
+	"options": ["60", "20", "15", "10"],
+	"correct_index": 3,
+	"reward_coins": 50,
+	"reward_stars": 2
+  },
+  {
+	"id": 4,
+	"category": "Combinatoria",
+	"question": "¿Cuál es la principal diferencia entre una Combinación y una Variación/Permutación?",
+	"options": [
+	  "El número total de elementos",
+	  "En la combinación el orden NO importa",
+	  "La combinación solo usa números pares",
+      "En la variación siempre se usan todos los elementos"
+	],
+	"correct_index": 1,
+	"reward_coins": 35,
+	"reward_stars": 1
+  },
+  {
+	"id": 5,
+	"category": "Cultura General",
+	"question": "¿Cuál es el río más largo del mundo?",
+	"options": ["Nilo", "Amazonas", "Misisipi", "Yangtsé"],
+	"correct_index": 1,
+	"reward_coins": 20,
+	"reward_stars": 1
+  },
+  {
+	"id": 6,
+	"category": "Cultura General",
+	"question": "¿Qué científico propuso la teoría de la relatividad general?",
+	"options": ["Isaac Newton", "Galileo Galilei", "Albert Einstein", "Nikola Tesla"],
+	"correct_index": 2,
+	"reward_coins": 20,
+	"reward_stars": 1
+  },
+  {
+	"id": 7,
+	"category": "Cultura General",
+	"question": "¿En qué continente se encuentra la cordillera de los Andes?",
+	"options": ["Asia", "África", "Europa", "América del Sur"],
+	"correct_index": 3,
+	"reward_coins": 20,
+	"reward_stars": 1
+  }
+]
