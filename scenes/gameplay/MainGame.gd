@@ -33,7 +33,7 @@ var cell_buttons: Array = []
 var recent_balls: Array[int] = []
 
 # Control de extracción continua
-const DRAW_INTERVAL: float = 4.0
+const DRAW_INTERVAL: float = 7.0
 var draw_timer: float = 3.0
 var is_auto_running: bool = true
 
