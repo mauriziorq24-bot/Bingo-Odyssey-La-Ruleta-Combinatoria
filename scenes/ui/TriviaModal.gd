@@ -2,7 +2,7 @@ extends Control
 
 signal trivia_answered(success: bool)
 
-const TIME_LIMIT: float = 18.0
+const TIME_LIMIT: float = 28.0
 
 @onready var lbl_category: Label = $ModalContainer/MarginContainer/VBox/LblCategory
 @onready var lbl_question: Label = $ModalContainer/MarginContainer/VBox/LblQuestion

@@ -32,20 +32,24 @@ var trivia_manager: TriviaManager
 var cell_buttons: Array = []
 var recent_balls: Array[int] = []
 
+# Control de extracción continua
+const DRAW_INTERVAL: float = 4.0
+var draw_timer: float = 3.0
+var is_auto_running: bool = true
+
 
 func _ready() -> void:
 	tombola = BingoTombola.new()
 	card = BingoCard.new()
 	trivia_manager = TriviaManager.new()
 
-	# Conexiones
 	GameManager.lives_changed.connect(_update_hud)
 	GameManager.coins_changed.connect(_update_hud)
 	GameManager.stars_changed.connect(_update_hud)
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.environment_changed.connect(_on_environment_changed)
 
-	btn_draw_ball.pressed.connect(_on_btn_draw_ball_pressed)
+	btn_draw_ball.pressed.connect(_on_btn_toggle_draw_pressed)
 	btn_bingo.pressed.connect(_on_btn_bingo_pressed)
 	btn_change_env.pressed.connect(_on_btn_change_env_pressed)
 	trivia_modal.trivia_answered.connect(_on_trivia_answered)
@@ -54,6 +58,59 @@ func _ready() -> void:
 	_build_visual_grid()
 	_apply_environment(GameManager.current_environment)
 	_update_hud()
+
+
+func _process(delta: float) -> void:
+	# La tómbola se pausa automáticamente durante la trivia o el fin de juego
+	if not is_auto_running or trivia_modal.visible or end_game_modal.visible:
+		return
+
+	draw_timer -= delta
+	btn_draw_ball.text = "PAUSAR TÓMBOLA  (%.1fs)" % max(0.0, draw_timer)
+
+	if draw_timer <= 0.0:
+		draw_timer = DRAW_INTERVAL
+		_draw_ball_automatically()
+
+
+func _on_btn_toggle_draw_pressed() -> void:
+	is_auto_running = not is_auto_running
+	if is_auto_running:
+		btn_draw_ball.modulate = Color(1.0, 1.0, 1.0)
+	else:
+		btn_draw_ball.text = "▶ REANUDAR TÓMBOLA"
+		btn_draw_ball.modulate = Color("#f39c12")
+
+
+func _draw_ball_automatically() -> void:
+	var ball: int = tombola.draw_next_ball()
+	if ball == -1:
+		is_auto_running = false
+		lbl_ball_number.text = "FIN"
+		btn_draw_ball.disabled = true
+		end_game_modal.show_game_over(false, "Se acabaron las balotas disponibles.")
+		return
+
+	# Clic sutil orgánico (sin tono chillón ni repetición molesta)
+	_play_harmonic_sound([160.0], 0.04, 0.06)
+
+	var info: Dictionary = _get_ball_info(ball)
+	lbl_ball_letter.text = info["letter"]
+	lbl_ball_number.text = "%02d" % ball
+	_style_ball(ball_circle, info["color"], info["border"])
+
+	var tween := create_tween()
+	ball_circle.scale = Vector2(0.85, 0.85)
+	tween.tween_property(ball_circle, "scale", Vector2(1.06, 1.06), 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.10)
+
+	recent_balls.push_front(ball)
+	if recent_balls.size() > 5:
+		recent_balls.pop_back()
+	_update_recent_balls_rack()
+
+	if randf() <= 0.20:
+		_trigger_trivia()
 
 
 func _setup_pro_styles() -> void:
@@ -90,7 +147,7 @@ func _setup_pro_styles() -> void:
 	btn_style.shadow_size = 6
 	btn_style.shadow_offset = Vector2(0, 4)
 	btn_draw_ball.add_theme_stylebox_override("normal", btn_style)
-	btn_draw_ball.add_theme_font_size_override("font_size", 26)
+	btn_draw_ball.add_theme_font_size_override("font_size", 24)
 	btn_draw_ball.custom_minimum_size = Vector2(0, 75)
 
 	recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -125,34 +182,6 @@ func _get_ball_info(num: int) -> Dictionary:
 		return {"letter": "G", "color": Color("#27ae60"), "border": Color("#2ecc71")}
 	else:
 		return {"letter": "O", "color": Color("#8e44ad"), "border": Color("#bb8fce")}
-
-
-func _on_btn_draw_ball_pressed() -> void:
-	var ball: int = tombola.draw_next_ball()
-	if ball == -1:
-		lbl_ball_number.text = "FIN"
-		btn_draw_ball.disabled = true
-		end_game_modal.show_game_over(false, "Se acabaron las balotas disponibles.")
-		return
-
-	_play_tone(440.0, 0.08) # SFX giro
-	var info: Dictionary = _get_ball_info(ball)
-	lbl_ball_letter.text = info["letter"]
-	lbl_ball_number.text = "%02d" % ball
-	_style_ball(ball_circle, info["color"], info["border"])
-
-	var tween := create_tween()
-	ball_circle.scale = Vector2(0.5, 0.5)
-	tween.tween_property(ball_circle, "scale", Vector2(1.15, 1.15), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
-
-	recent_balls.push_front(ball)
-	if recent_balls.size() > 5:
-		recent_balls.pop_back()
-	_update_recent_balls_rack()
-
-	if randf() <= 0.20:
-		_trigger_trivia()
 
 
 func _update_recent_balls_rack() -> void:
@@ -216,12 +245,14 @@ func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
 	var cell_number: int = card.grid[row][col]
 	if tombola.has_been_drawn(cell_number):
 		if card.mark_cell(row, col):
-			_play_tone(660.0, 0.12) # SFX acierto
+			# Acorde suave de campanilla (Do + Mi)
+			_play_harmonic_sound([523.25, 659.25], 0.22, 0.16)
 			btn.disabled = true
 			btn.text = str(cell_number) + "\n✔"
 			GameManager.add_coins(10)
 	else:
-		_play_tone(220.0, 0.2) # SFX fallo
+		# Toque sordo grave (sin zumbido)
+		_play_harmonic_sound([130.0], 0.10, 0.12)
 		GameManager.lose_life()
 
 
@@ -233,27 +264,30 @@ func _trigger_trivia() -> void:
 
 func _on_trivia_answered(success: bool) -> void:
 	if success:
-		_play_tone(880.0, 0.15)
+		# Acorde brillante alegre (Do - Sol - Do)
+		_play_harmonic_sound([523.25, 783.99, 1046.5], 0.35, 0.18)
 		lbl_ball_letter.text = "¡BONUS!"
 	else:
-		_play_tone(200.0, 0.25)
+		_play_harmonic_sound([220.0, 164.81], 0.25, 0.14)
 
 
 func _on_btn_bingo_pressed() -> void:
 	var win_data: Dictionary = card.check_win_patterns()
 	if win_data["has_won"]:
-		_play_tone(950.0, 0.4)
+		_play_harmonic_sound([523.25, 659.25, 783.99, 1046.5], 0.6, 0.22)
 		GameManager.add_stars(5)
 		GameManager.add_coins(200)
 		btn_bingo.disabled = true
+		is_auto_running = false
 		end_game_modal.show_game_over(true, "¡Patrón completado: %s!" % win_data["pattern"])
 	else:
-		_play_tone(180.0, 0.3)
+		_play_harmonic_sound([140.0], 0.15, 0.15)
 		GameManager.lose_life()
 
 
 func _on_game_over() -> void:
-	_play_tone(150.0, 0.5)
+	is_auto_running = false
+	_play_harmonic_sound([196.0, 146.83], 0.4, 0.15)
 	end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
 
 
@@ -286,21 +320,32 @@ func _update_hud(_val: int = 0) -> void:
 	lbl_stars.text = "⭐ %d" % GameManager.stars
 
 
-## Generador de beeps/tonos procedurales para SFX instantáneos
-func _play_tone(freq: float, duration: float) -> void:
-	var sample_hz: float = 22050.0
-	var total_samples: int = int(sample_hz * duration)
+## Sintetizador PCM de 16 bits sin estridencias, con caída exponencial y anti-clic
+func _play_harmonic_sound(frequencies: Array[float], duration: float, volume: float = 0.2) -> void:
+	var sample_rate: int = 44100
+	var total_samples: int = int(sample_rate * duration)
 	var pcm := PackedByteArray()
-	pcm.resize(total_samples)
+	pcm.resize(total_samples * 2)
 
 	for i in range(total_samples):
-		var phase: float = (float(i) / sample_hz) * freq * TAU
-		var sample_val: int = int(sin(phase) * 60.0 + 128.0)
-		pcm.set(i, sample_val)
+		var t: float = float(i) / float(sample_rate)
+		var envelope: float = exp(-6.0 * (float(i) / float(total_samples)))
+		
+		# Rampa de ataque de 120 muestras para evitar cualquier "pop" de inicio
+		if i < 120:
+			envelope *= float(i) / 120.0
+		
+		var wave: float = 0.0
+		for f in frequencies:
+			wave += sin(t * f * TAU)
+		wave = (wave / float(frequencies.size())) * envelope * volume
+		
+		var sample_val: int = int(clampf(wave, -1.0, 1.0) * 32767.0)
+		pcm.encode_s16(i * 2, sample_val)
 
 	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_8_BITS
-	stream.mix_rate = int(sample_hz)
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
 	stream.data = pcm
 	sfx_player.stream = stream
 	sfx_player.play()
