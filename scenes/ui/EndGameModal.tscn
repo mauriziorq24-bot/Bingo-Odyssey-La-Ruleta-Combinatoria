@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://hwde4smalysb"]
+
+[ext_resource type="Script" uid="uid://d381udt1huwnh" path="res://scenes/ui/EndGameModal.gd" id="1_1d4tr"]
+
+[node name="EndGameModal" type="Control" unique_id=1828963658]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1d4tr")
+
+[node name="BackgroundDim" type="ColorRect" parent="." unique_id=1853919636]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6901961)
+
+[node name="ModalContainer" type="PanelContainer" parent="." unique_id=913574141]
+custom_minimum_size = Vector2(800, 450)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -37.0
+offset_right = 20.0
+offset_bottom = 37.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="ModalContainer" unique_id=2057730576]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBox" type="VBoxContainer" parent="ModalContainer/Margin" unique_id=590148343]
+layout_mode = 2
+
+[node name="LblResultTitle" type="Label" parent="ModalContainer/Margin/VBox" unique_id=90160027]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "¡VICTORIA!"
+horizontal_alignment = 1
+
+[node name="LblStats" type="Label" parent="ModalContainer/Margin/VBox" unique_id=1962441326]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Resumen de Partida"
+horizontal_alignment = 1
+
+[node name="BtnRestart" type="Button" parent="ModalContainer/Margin/VBox" unique_id=1725101469]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "JUGAR DE NUEVO"
+
+[node name="BtnReturnMenu" type="Button" parent="ModalContainer/Margin/VBox" unique_id=688636912]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "MENÚ PRINCIPAL"

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cwr2mfqmgmarp" path="res://scenes/gameplay/MainGame.gd" id="1_bov8g"]
 [ext_resource type="PackedScene" uid="uid://lmlv24brci8d" path="res://scenes/ui/TriviaModal.tscn" id="1_lxcse"]
+[ext_resource type="PackedScene" uid="uid://hwde4smalysb" path="res://scenes/ui/EndGameModal.tscn" id="3_is4ce"]
 
 [node name="MainGame" type="Control" unique_id=1649907951]
 layout_mode = 3
@@ -146,3 +147,7 @@ text = "CAMBIAR AMBIENTE"
 [node name="UIOverlay" type="CanvasLayer" parent="." unique_id=1745047755]
 
 [node name="TriviaModal" parent="UIOverlay" unique_id=2139220717 instance=ExtResource("1_lxcse")]
+
+[node name="EndGameModal" parent="UIOverlay" unique_id=1828963658 instance=ExtResource("3_is4ce")]
+
+[node name="SFXPlayer" type="AudioStreamPlayer" parent="." unique_id=68035600]

@@ -18,7 +18,11 @@ extends Control
 @onready var card_grid: GridContainer = $SafeArea/MainLayout/BoardContainer/CardGrid
 @onready var btn_bingo: Button = $SafeArea/MainLayout/Actions/BtnBingo
 @onready var btn_change_env: Button = $SafeArea/MainLayout/Actions/BtnChangeEnv
+
+# Modales y Audio
 @onready var trivia_modal: Control = $UIOverlay/TriviaModal
+@onready var end_game_modal: Control = $UIOverlay/EndGameModal
+@onready var sfx_player: AudioStreamPlayer = $SFXPlayer
 
 # Instancias Lógicas
 var tombola: BingoTombola
@@ -38,6 +42,7 @@ func _ready() -> void:
 	GameManager.lives_changed.connect(_update_hud)
 	GameManager.coins_changed.connect(_update_hud)
 	GameManager.stars_changed.connect(_update_hud)
+	GameManager.game_over.connect(_on_game_over)
 	GameManager.environment_changed.connect(_on_environment_changed)
 
 	btn_draw_ball.pressed.connect(_on_btn_draw_ball_pressed)
@@ -51,9 +56,7 @@ func _ready() -> void:
 	_update_hud()
 
 
-## Aplica estilos de diseño modernos mediante código
 func _setup_pro_styles() -> void:
-	# 1. Panel de la Tómbola (Contenedor con esquinas redondeadas y sombra)
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.1, 0.12, 0.16, 0.85)
 	panel_style.corner_radius_top_left = 24
@@ -65,9 +68,8 @@ func _setup_pro_styles() -> void:
 	panel_style.shadow_offset = Vector2(0, 6)
 	tombola_section.add_theme_stylebox_override("panel", panel_style)
 
-	# 2. La Balota Principal (Círculo tridimensional con brillo)
 	ball_circle.custom_minimum_size = Vector2(180, 180)
-	ball_circle.pivot_offset = Vector2(90, 90) # Pivote centrado para animaciones de escala
+	ball_circle.pivot_offset = Vector2(90, 90)
 	_style_ball(ball_circle, Color("#3a4454"), Color("#5a6982"))
 
 	lbl_ball_letter.text = "BINGO"
@@ -78,7 +80,6 @@ func _setup_pro_styles() -> void:
 	lbl_ball_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl_ball_number.add_theme_font_size_override("font_size", 64)
 
-	# 3. Botón de Giro (Pill Shape arcade)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = Color("#2ecc71")
 	btn_style.corner_radius_top_left = 30
@@ -95,7 +96,6 @@ func _setup_pro_styles() -> void:
 	recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
 
 
-## Genera un diseño circular con bisel para una balota
 func _style_ball(panel: PanelContainer, fill_color: Color, border_color: Color) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill_color
@@ -104,7 +104,6 @@ func _style_ball(panel: PanelContainer, fill_color: Color, border_color: Color) 
 	style.border_width_right = 6
 	style.border_width_bottom = 6
 	style.border_color = border_color
-	# Radio al 50% del tamaño genera un círculo perfecto
 	style.corner_radius_top_left = 100
 	style.corner_radius_top_right = 100
 	style.corner_radius_bottom_left = 100
@@ -115,7 +114,6 @@ func _style_ball(panel: PanelContainer, fill_color: Color, border_color: Color) 
 	panel.add_theme_stylebox_override("panel", style)
 
 
-## Obtiene la letra y paleta según el rango de Bingo
 func _get_ball_info(num: int) -> Dictionary:
 	if num <= 15:
 		return {"letter": "B", "color": Color("#2980b9"), "border": Color("#5dade2")}
@@ -134,20 +132,20 @@ func _on_btn_draw_ball_pressed() -> void:
 	if ball == -1:
 		lbl_ball_number.text = "FIN"
 		btn_draw_ball.disabled = true
+		end_game_modal.show_game_over(false, "Se acabaron las balotas disponibles.")
 		return
 
+	_play_tone(440.0, 0.08) # SFX giro
 	var info: Dictionary = _get_ball_info(ball)
 	lbl_ball_letter.text = info["letter"]
 	lbl_ball_number.text = "%02d" % ball
 	_style_ball(ball_circle, info["color"], info["border"])
 
-	# Animación de Rebote (Juice)
 	var tween := create_tween()
 	ball_circle.scale = Vector2(0.5, 0.5)
 	tween.tween_property(ball_circle, "scale", Vector2(1.15, 1.15), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
 
-	# Actualizar bandeja de mini-balotas
 	recent_balls.push_front(ball)
 	if recent_balls.size() > 5:
 		recent_balls.pop_back()
@@ -157,7 +155,6 @@ func _on_btn_draw_ball_pressed() -> void:
 		_trigger_trivia()
 
 
-## Actualiza la bandeja de mini-balotas previas
 func _update_recent_balls_rack() -> void:
 	for c in recent_balls_rack.get_children():
 		c.queue_free()
@@ -219,10 +216,12 @@ func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
 	var cell_number: int = card.grid[row][col]
 	if tombola.has_been_drawn(cell_number):
 		if card.mark_cell(row, col):
+			_play_tone(660.0, 0.12) # SFX acierto
 			btn.disabled = true
 			btn.text = str(cell_number) + "\n✔"
 			GameManager.add_coins(10)
 	else:
+		_play_tone(220.0, 0.2) # SFX fallo
 		GameManager.lose_life()
 
 
@@ -234,19 +233,28 @@ func _trigger_trivia() -> void:
 
 func _on_trivia_answered(success: bool) -> void:
 	if success:
+		_play_tone(880.0, 0.15)
 		lbl_ball_letter.text = "¡BONUS!"
+	else:
+		_play_tone(200.0, 0.25)
 
 
 func _on_btn_bingo_pressed() -> void:
 	var win_data: Dictionary = card.check_win_patterns()
 	if win_data["has_won"]:
-		lbl_ball_letter.text = "¡GANASTE!"
-		lbl_ball_number.text = "BINGO"
+		_play_tone(950.0, 0.4)
 		GameManager.add_stars(5)
 		GameManager.add_coins(200)
 		btn_bingo.disabled = true
+		end_game_modal.show_game_over(true, "¡Patrón completado: %s!" % win_data["pattern"])
 	else:
+		_play_tone(180.0, 0.3)
 		GameManager.lose_life()
+
+
+func _on_game_over() -> void:
+	_play_tone(150.0, 0.5)
+	end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
 
 
 func _on_btn_change_env_pressed() -> void:
@@ -276,3 +284,23 @@ func _update_hud(_val: int = 0) -> void:
 	lbl_lives.text = "❤ %d/%d" % [GameManager.lives, GameManager.MAX_LIVES]
 	lbl_coins.text = "🪙 %d" % GameManager.coins
 	lbl_stars.text = "⭐ %d" % GameManager.stars
+
+
+## Generador de beeps/tonos procedurales para SFX instantáneos
+func _play_tone(freq: float, duration: float) -> void:
+	var sample_hz: float = 22050.0
+	var total_samples: int = int(sample_hz * duration)
+	var pcm := PackedByteArray()
+	pcm.resize(total_samples)
+
+	for i in range(total_samples):
+		var phase: float = (float(i) / sample_hz) * freq * TAU
+		var sample_val: int = int(sin(phase) * 60.0 + 128.0)
+		pcm.set(i, sample_val)
+
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_hz)
+	stream.data = pcm
+	sfx_player.stream = stream
+	sfx_player.play()

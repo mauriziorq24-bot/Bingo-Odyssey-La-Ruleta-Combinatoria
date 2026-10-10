@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Bingo Odyssey: La Ruleta Combinatoria"
-run/main_scene="uid://lmlv24brci8d"
+run/main_scene="uid://c7t2ci3h5w7d"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]

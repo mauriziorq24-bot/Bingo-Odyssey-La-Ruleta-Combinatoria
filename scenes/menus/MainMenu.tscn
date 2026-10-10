@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://c7t2ci3h5w7d"]
+
+[ext_resource type="Script" uid="uid://b6u5waniqspha" path="res://scenes/menus/MainMenu.gd" id="1_wlpbi"]
+
+[node name="MainMenu" type="Control" unique_id=1761233689]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wlpbi")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1765003877]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.050980393, 0.07450981, 0.101960786, 1)
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1349991878]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 60
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 60
+theme_override_constants/margin_bottom = 60
+
+[node name="MenuVBox" type="VBoxContainer" parent="Margin" unique_id=1048931005]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleSection" type="VBoxContainer" parent="Margin/MenuVBox" unique_id=953445471]
+layout_mode = 2
+
+[node name="LblTitle" type="Label" parent="Margin/MenuVBox/TitleSection" unique_id=924929740]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "COMBINATOBINGO"
+horizontal_alignment = 1
+
+[node name="LblSubtitle" type="Label" parent="Margin/MenuVBox/TitleSection" unique_id=343398828]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "DESAFÍO MENTAL Y AZAR"
+horizontal_alignment = 1
+
+[node name="SpacerMiddle" type="Control" parent="Margin/MenuVBox" unique_id=391987238]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ButtonsVBox" type="VBoxContainer" parent="Margin/MenuVBox" unique_id=423046618]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnPlay" type="Button" parent="Margin/MenuVBox/ButtonsVBox" unique_id=1952146115]
+custom_minimum_size = Vector2(0, 85)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "JUGAR PARTIDA"
+
+[node name="BtnSelectEnv" type="Button" parent="Margin/MenuVBox/ButtonsVBox" unique_id=341931219]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "AMBIENTE: ACADEMIA DE LÓGICA"
+
+[node name="BtnQuit" type="Button" parent="Margin/MenuVBox/ButtonsVBox" unique_id=148695344]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "SALIR"
+
+[node name="SpacerBottom" type="Control" parent="Margin/MenuVBox" unique_id=1051237619]
+layout_mode = 2
