@@ -1,0 +1,85 @@
+[gd_scene format=3 uid="uid://bfxttvrxqsha2"]
+
+[node name="MainGame" type="Control" unique_id=1649907951]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="." unique_id=571933045]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SafeArea" type="MarginContainer" parent="." unique_id=197213892]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="MainLayout" type="VBoxContainer" parent="SafeArea" unique_id=1792636396]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="HUD" type="HBoxContainer" parent="SafeArea/MainLayout" unique_id=88051098]
+layout_mode = 2
+
+[node name="LblLives" type="Label" parent="SafeArea/MainLayout/HUD" unique_id=153715864]
+layout_mode = 2
+
+[node name="Spacer1" type="Control" parent="SafeArea/MainLayout/HUD" unique_id=534945581]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblCoins" type="Label" parent="SafeArea/MainLayout/HUD" unique_id=1141465782]
+layout_mode = 2
+
+[node name="Spacer2" type="Control" parent="SafeArea/MainLayout/HUD" unique_id=977711839]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblStars" type="Label" parent="SafeArea/MainLayout/HUD" unique_id=1927060396]
+layout_mode = 2
+
+[node name="TombolaSection" type="PanelContainer" parent="SafeArea/MainLayout" unique_id=1046161008]
+layout_mode = 2
+
+[node name="TombolaVBox" type="VBoxContainer" parent="SafeArea/MainLayout/TombolaSection" unique_id=1972154466]
+layout_mode = 2
+
+[node name="LblCurrentBall" type="Label" parent="SafeArea/MainLayout/TombolaSection/TombolaVBox" unique_id=536279726]
+layout_mode = 2
+text = "ÚLTIMA BALOTA: --"
+horizontal_alignment = 1
+
+[node name="BtnDrawBall" type="Button" parent="SafeArea/MainLayout/TombolaSection/TombolaVBox" unique_id=1131482729]
+layout_mode = 2
+text = "GIRAR TÓMBOLA"
+
+[node name="BoardContainer" type="CenterContainer" parent="SafeArea/MainLayout" unique_id=510798811]
+layout_mode = 2
+
+[node name="CardGrid" type="GridContainer" parent="SafeArea/MainLayout/BoardContainer" unique_id=214761335]
+layout_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="SafeArea/MainLayout" unique_id=1485687007]
+layout_mode = 2
+
+[node name="BtnBingo" type="Button" parent="SafeArea/MainLayout/Actions" unique_id=1137381177]
+layout_mode = 2
+
+[node name="BtnChangeEnv" type="Button" parent="SafeArea/MainLayout/Actions" unique_id=1144024632]
+layout_mode = 2
+
+[node name="UIOverlay" type="CanvasLayer" parent="." unique_id=1745047755]
