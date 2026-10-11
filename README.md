@@ -90,7 +90,7 @@ El proyecto sigue una adaptación modular del patrón **MVC (Modelo-Vista-Contro
 	└── gameplay/
 		├── BingoCard.gd             # Generación de matriz 5x5 y reglas de victoria
 		├── BingoTombola.gd          # Bombo y extracción de balotas (1-75)
-		└── TriviaManager.gd         # Banco de preguntas y validación
+		└── TriviaManager.gd         # Banco de preguntas y validación```
 
 
 ---
@@ -112,4 +112,4 @@ El proyecto sigue una adaptación modular del patrón **MVC (Modelo-Vista-Contro
 	│    ├─ SÍ: Paga 50 🪙 y Revive (+1 ❤) │    +200 🪙 Monedas
 	│    └─ NO: Fin de Partida               └─► Guarda progreso en JSON
 	│           (Monedas se reinician a 0)      (Desbloqueo de Villa: 20 ⭐)
-	└───────────────────────────────────────┘
+	└───────────────────────────────────────┘```
