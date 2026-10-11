@@ -2,7 +2,14 @@
 
 [ext_resource type="Script" uid="uid://cwr2mfqmgmarp" path="res://scenes/gameplay/MainGame.gd" id="1_bov8g"]
 [ext_resource type="PackedScene" uid="uid://lmlv24brci8d" path="res://scenes/ui/TriviaModal.tscn" id="1_lxcse"]
+[ext_resource type="Texture2D" uid="uid://d2uii2an0l4yu" path="res://assets/sprites/env_resort.jpeg" id="2_8ssmx"]
+[ext_resource type="Shader" uid="uid://b5i3w3iwoobc3" path="res://scenes/gameplay/MainGame.gdshader" id="3_3vg6d"]
 [ext_resource type="PackedScene" uid="uid://hwde4smalysb" path="res://scenes/ui/EndGameModal.tscn" id="3_is4ce"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_b7hpn"]
+shader = ExtResource("3_3vg6d")
+shader_parameter/blur_intensity = 3.2
+shader_parameter/tint_color = Color(0.06, 0.12, 0.1, 0.72)
 
 [node name="MainGame" type="Control" unique_id=1649907951]
 layout_mode = 3
@@ -13,7 +20,19 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_bov8g")
 
-[node name="Background" type="ColorRect" parent="." unique_id=571933045]
+[node name="Background" type="TextureRect" parent="." unique_id=1058731644]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_8ssmx")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="BlurOverlay" type="ColorRect" parent="." unique_id=402986221]
+material = SubResource("ShaderMaterial_b7hpn")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,6 +1,13 @@
 [gd_scene format=3 uid="uid://c7t2ci3h5w7d"]
 
 [ext_resource type="Script" uid="uid://b6u5waniqspha" path="res://scenes/menus/MainMenu.gd" id="1_wlpbi"]
+[ext_resource type="Texture2D" uid="uid://obdjjshe5nxe" path="res://assets/sprites/menu_bg.jpeg" id="2_ldf1p"]
+[ext_resource type="Shader" uid="uid://btf83j1kodn63" path="res://scenes/menus/MainMenu.gdshader" id="3_tyyoy"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_b7hpn"]
+shader = ExtResource("3_tyyoy")
+shader_parameter/blur_intensity = 3.0
+shader_parameter/tint_color = Color(0.05, 0.05, 0.12, 0.65)
 
 [node name="MainMenu" type="Control" unique_id=1761233689]
 layout_mode = 3
@@ -11,14 +18,25 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_wlpbi")
 
-[node name="Background" type="ColorRect" parent="." unique_id=1765003877]
+[node name="Background" type="TextureRect" parent="." unique_id=614586407]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.050980393, 0.07450981, 0.101960786, 1)
+texture = ExtResource("2_ldf1p")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="BlurOverlay" type="ColorRect" parent="." unique_id=411986621]
+material = SubResource("ShaderMaterial_b7hpn")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=1349991878]
 layout_mode = 1

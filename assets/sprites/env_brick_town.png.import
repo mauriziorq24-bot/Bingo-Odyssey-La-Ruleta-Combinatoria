@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://culffjqisuqcl"
-path="res://.godot/imported/PROJECT LOGO.jpeg-e7314689d990f48e4786199553e632ff.ctex"
+uid="uid://cw0o8bvwyicy0"
+path="res://.godot/imported/env_brick_town.png-50881250e2f52ce73ad3614daf7cd05c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/PROJECT LOGO.jpeg"
-dest_files=["res://.godot/imported/PROJECT LOGO.jpeg-e7314689d990f48e4786199553e632ff.ctex"]
+source_file="res://assets/sprites/env_brick_town.png"
+dest_files=["res://.godot/imported/env_brick_town.png-50881250e2f52ce73ad3614daf7cd05c.ctex"]
 
 [params]
 

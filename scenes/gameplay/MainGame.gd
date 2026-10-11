@@ -1,7 +1,15 @@
 extends Control
 
+# Control de extracción continua (Tómbola automática)
+const DRAW_INTERVAL: float = 7.0
+var draw_timer: float = 3.0
+var is_auto_running: bool = true
+
+# Referencias UI - Fondos
+@onready var background: TextureRect = $Background
+@onready var blur_overlay: ColorRect = $BlurOverlay
+
 # Referencias UI - HUD
-@onready var background: ColorRect = $Background
 @onready var lbl_lives: Label = $SafeArea/MainLayout/HUD/LblLives
 @onready var lbl_coins: Label = $SafeArea/MainLayout/HUD/LblCoins
 @onready var lbl_stars: Label = $SafeArea/MainLayout/HUD/LblStars
@@ -32,24 +40,21 @@ var trivia_manager: TriviaManager
 var cell_buttons: Array = []
 var recent_balls: Array[int] = []
 
-# Control de extracción continua
-const DRAW_INTERVAL: float = 4.0
-var draw_timer: float = 3.0
-var is_auto_running: bool = true
-
 
 func _ready() -> void:
 	tombola = BingoTombola.new()
 	card = BingoCard.new()
 	trivia_manager = TriviaManager.new()
 
+	# Conexiones con el GameManager
 	GameManager.lives_changed.connect(_update_hud)
 	GameManager.coins_changed.connect(_update_hud)
 	GameManager.stars_changed.connect(_update_hud)
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.environment_changed.connect(_on_environment_changed)
 
-	btn_draw_ball.pressed.connect(_on_btn_toggle_draw_pressed)
+	# Botones y eventos
+	btn_draw_ball.pressed.connect(_on_toggle_auto_draw_pressed)
 	btn_bingo.pressed.connect(_on_btn_bingo_pressed)
 	btn_change_env.pressed.connect(_on_btn_change_env_pressed)
 	trivia_modal.trivia_answered.connect(_on_trivia_answered)
@@ -60,59 +65,84 @@ func _ready() -> void:
 	_update_hud()
 
 
+## Temporizador de la tómbola automática
 func _process(delta: float) -> void:
-	# La tómbola se pausa automáticamente durante la trivia o el fin de juego
-	if not is_auto_running or trivia_modal.visible or end_game_modal.visible:
+	if not is_auto_running:
 		return
-
+	
 	draw_timer -= delta
-	btn_draw_ball.text = "PAUSAR TÓMBOLA  (%.1fs)" % max(0.0, draw_timer)
+	btn_draw_ball.text = "PAUSAR TÓMBOLA (%.1fs)" % max(draw_timer, 0.0)
 
 	if draw_timer <= 0.0:
 		draw_timer = DRAW_INTERVAL
-		_draw_ball_automatically()
+		_draw_next_ball()
 
 
-func _on_btn_toggle_draw_pressed() -> void:
+## Alterna pausa y reanudación manual del giro
+func _on_toggle_auto_draw_pressed() -> void:
 	is_auto_running = not is_auto_running
-	if is_auto_running:
-		btn_draw_ball.modulate = Color(1.0, 1.0, 1.0)
-	else:
-		btn_draw_ball.text = "▶ REANUDAR TÓMBOLA"
+	if not is_auto_running:
+		btn_draw_ball.text = "REANUDAR TÓMBOLA"
 		btn_draw_ball.modulate = Color("#f39c12")
+	else:
+		btn_draw_ball.modulate = Color("#ffffff")
 
 
-func _draw_ball_automatically() -> void:
+## Extrae balota, ejecuta animación y calcula probabilidad de trivia
+func _draw_next_ball() -> void:
 	var ball: int = tombola.draw_next_ball()
 	if ball == -1:
-		is_auto_running = false
 		lbl_ball_number.text = "FIN"
+		is_auto_running = false
 		btn_draw_ball.disabled = true
-		end_game_modal.show_game_over(false, "Se acabaron las balotas disponibles.")
+		btn_draw_ball.text = "TÓMBOLA VACÍA"
+		end_game_modal.show_game_over(false, "Se agotaron todas las balotas disponibles.")
 		return
 
-	# Clic sutil orgánico (sin tono chillón ni repetición molesta)
-	_play_harmonic_sound([160.0], 0.04, 0.06)
-
+	_play_tone(440.0, 0.08)
 	var info: Dictionary = _get_ball_info(ball)
 	lbl_ball_letter.text = info["letter"]
 	lbl_ball_number.text = "%02d" % ball
 	_style_ball(ball_circle, info["color"], info["border"])
 
+	# Animación Juice de rebote
 	var tween := create_tween()
-	ball_circle.scale = Vector2(0.85, 0.85)
-	tween.tween_property(ball_circle, "scale", Vector2(1.06, 1.06), 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.10)
+	ball_circle.scale = Vector2(0.5, 0.5)
+	tween.tween_property(ball_circle, "scale", Vector2(1.15, 1.15), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
 
+	# Historial en bandeja
 	recent_balls.push_front(ball)
 	if recent_balls.size() > 5:
 		recent_balls.pop_back()
 	_update_recent_balls_rack()
 
+	# 20% de probabilidad de pausar la tómbola y lanzar trivia
 	if randf() <= 0.20:
+		is_auto_running = false
+		btn_draw_ball.text = "¡TRIVIA EN CURSO!"
 		_trigger_trivia()
 
 
+func _trigger_trivia() -> void:
+	var question_data: Dictionary = trivia_manager.get_random_question()
+	if not question_data.is_empty():
+		trivia_modal.open_trivia(question_data)
+
+
+func _on_trivia_answered(success: bool) -> void:
+	# Al contestar se reanuda la marcha automática
+	is_auto_running = true
+	draw_timer = DRAW_INTERVAL
+	btn_draw_ball.modulate = Color("#ffffff")
+	if success:
+		_play_tone(880.0, 0.15)
+		lbl_ball_letter.text = "¡BONUS!"
+	else:
+		_play_tone(200.0, 0.25)
+
+
+## Estilos vectoriales modernos para la tómbola
 func _setup_pro_styles() -> void:
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.1, 0.12, 0.16, 0.85)
@@ -206,6 +236,7 @@ func _update_recent_balls_rack() -> void:
 		recent_balls_rack.add_child(mini_ball)
 
 
+## Construcción del cartón 5x5 con encabezado
 func _build_visual_grid() -> void:
 	for child in card_grid.get_children():
 		child.queue_free()
@@ -245,49 +276,32 @@ func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
 	var cell_number: int = card.grid[row][col]
 	if tombola.has_been_drawn(cell_number):
 		if card.mark_cell(row, col):
-			# Acorde suave de campanilla (Do + Mi)
-			_play_harmonic_sound([523.25, 659.25], 0.22, 0.16)
+			_play_tone(660.0, 0.12)
 			btn.disabled = true
 			btn.text = str(cell_number) + "\n✔"
 			GameManager.add_coins(10)
 	else:
-		# Toque sordo grave (sin zumbido)
-		_play_harmonic_sound([130.0], 0.10, 0.12)
+		_play_tone(220.0, 0.2)
 		GameManager.lose_life()
-
-
-func _trigger_trivia() -> void:
-	var question_data: Dictionary = trivia_manager.get_random_question()
-	if not question_data.is_empty():
-		trivia_modal.open_trivia(question_data)
-
-
-func _on_trivia_answered(success: bool) -> void:
-	if success:
-		# Acorde brillante alegre (Do - Sol - Do)
-		_play_harmonic_sound([523.25, 783.99, 1046.5], 0.35, 0.18)
-		lbl_ball_letter.text = "¡BONUS!"
-	else:
-		_play_harmonic_sound([220.0, 164.81], 0.25, 0.14)
 
 
 func _on_btn_bingo_pressed() -> void:
 	var win_data: Dictionary = card.check_win_patterns()
 	if win_data["has_won"]:
-		_play_harmonic_sound([523.25, 659.25, 783.99, 1046.5], 0.6, 0.22)
+		is_auto_running = false
+		_play_tone(950.0, 0.4)
 		GameManager.add_stars(5)
 		GameManager.add_coins(200)
 		btn_bingo.disabled = true
-		is_auto_running = false
 		end_game_modal.show_game_over(true, "¡Patrón completado: %s!" % win_data["pattern"])
 	else:
-		_play_harmonic_sound([140.0], 0.15, 0.15)
+		_play_tone(180.0, 0.3)
 		GameManager.lose_life()
 
 
 func _on_game_over() -> void:
 	is_auto_running = false
-	_play_harmonic_sound([196.0, 146.83], 0.4, 0.15)
+	_play_tone(150.0, 0.5)
 	end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
 
 
@@ -302,16 +316,24 @@ func _on_environment_changed(_env_name: String) -> void:
 	_apply_environment(GameManager.current_environment)
 
 
+## Aplica las texturas y tintes difuminados según el ambiente
 func _apply_environment(env: GameManager.GameEnvironment) -> void:
 	match env:
 		GameManager.GameEnvironment.LOGIC_ACADEMY:
-			background.color = Color("#16291b")
+			# Ambiente 1: Resort Costero
+			background.texture = load("res://assets/sprites/env_resort.jpeg")
+			if blur_overlay and blur_overlay.material:
+				blur_overlay.material.set_shader_parameter("tint_color", Color(0.06, 0.14, 0.10, 0.72))
 			btn_bingo.modulate = Color("#e5c158")
 			btn_change_env.modulate = Color("#ffffff")
+		
 		GameManager.GameEnvironment.CYBER_CASINO:
-			background.color = Color("#0a0a16")
-			btn_bingo.modulate = Color("#ff007f")
-			btn_change_env.modulate = Color("#00e5ff")
+			# Ambiente 2: Villa de Bloques
+			background.texture = load("res://assets/sprites/env_brick_town.png")
+			if blur_overlay and blur_overlay.material:
+				blur_overlay.material.set_shader_parameter("tint_color", Color(0.12, 0.08, 0.04, 0.72))
+			btn_bingo.modulate = Color("#ff9900")
+			btn_change_env.modulate = Color("#ffd166")
 
 
 func _update_hud(_val: int = 0) -> void:
@@ -320,32 +342,21 @@ func _update_hud(_val: int = 0) -> void:
 	lbl_stars.text = "⭐ %d" % GameManager.stars
 
 
-## Sintetizador PCM de 16 bits sin estridencias, con caída exponencial y anti-clic
-func _play_harmonic_sound(frequencies: Array[float], duration: float, volume: float = 0.2) -> void:
-	var sample_rate: int = 44100
-	var total_samples: int = int(sample_rate * duration)
+## Generación sintética procedural de audio para efectos
+func _play_tone(freq: float, duration: float) -> void:
+	var sample_hz: float = 22050.0
+	var total_samples: int = int(sample_hz * duration)
 	var pcm := PackedByteArray()
-	pcm.resize(total_samples * 2)
+	pcm.resize(total_samples)
 
 	for i in range(total_samples):
-		var t: float = float(i) / float(sample_rate)
-		var envelope: float = exp(-6.0 * (float(i) / float(total_samples)))
-		
-		# Rampa de ataque de 120 muestras para evitar cualquier "pop" de inicio
-		if i < 120:
-			envelope *= float(i) / 120.0
-		
-		var wave: float = 0.0
-		for f in frequencies:
-			wave += sin(t * f * TAU)
-		wave = (wave / float(frequencies.size())) * envelope * volume
-		
-		var sample_val: int = int(clampf(wave, -1.0, 1.0) * 32767.0)
-		pcm.encode_s16(i * 2, sample_val)
+		var phase: float = (float(i) / sample_hz) * freq * TAU
+		var sample_val: int = int(sin(phase) * 60.0 + 128.0)
+		pcm.set(i, sample_val)
 
 	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = sample_rate
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = int(sample_hz)
 	stream.data = pcm
 	sfx_player.stream = stream
 	sfx_player.play()
