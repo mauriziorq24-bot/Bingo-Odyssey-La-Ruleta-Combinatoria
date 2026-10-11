@@ -60,7 +60,7 @@ layout_mode = 2
 [node name="LblTitle" type="Label" parent="Margin/MenuVBox/TitleSection" unique_id=924929740]
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
-text = "COMBINATOBINGO"
+text = "Bingo Odyssey: La Ruleta Combinatoria"
 horizontal_alignment = 1
 
 [node name="LblSubtitle" type="Label" parent="Margin/MenuVBox/TitleSection" unique_id=343398828]

@@ -5,12 +5,16 @@ const DRAW_INTERVAL: float = 7.0
 var draw_timer: float = 3.0
 var is_auto_running: bool = true
 
+# Rutas de navegación
+const MAIN_MENU_PATH: String = "res://scenes/menus/MainMenu.tscn"
+
 # Referencias UI - Fondos
 @onready var background: TextureRect = $Background
 @onready var blur_overlay: ColorRect = $BlurOverlay
 
-# Referencias UI - HUD
+# Referencias UI - HUD (Cabecera Superior)
 @onready var hud: HBoxContainer = $SafeArea/MainLayout/HUD
+@onready var btn_back_menu: Button = $SafeArea/MainLayout/HUD/BtnBackMenu
 @onready var lbl_lives: Label = $SafeArea/MainLayout/HUD/LblLives
 @onready var lbl_coins: Label = $SafeArea/MainLayout/HUD/LblCoins
 @onready var lbl_stars: Label = $SafeArea/MainLayout/HUD/LblStars
@@ -64,6 +68,7 @@ func _ready() -> void:
 	btn_draw_ball.pressed.connect(_on_toggle_auto_draw_pressed)
 	btn_bingo.pressed.connect(_on_btn_bingo_pressed)
 	btn_change_env.pressed.connect(_on_btn_change_env_pressed)
+	btn_back_menu.pressed.connect(_on_btn_back_menu_pressed)
 	trivia_modal.trivia_answered.connect(_on_trivia_answered)
 
 	_setup_pro_styles()
@@ -104,6 +109,7 @@ func _draw_next_ball() -> void:
 		end_game_modal.show_game_over(false, "Se agotaron todas las balotas disponibles.")
 		return
 
+	sfx_player.volume_db = 0.0
 	sfx_player.stream = SFX_BALL_DRAW
 	sfx_player.play()
 
@@ -146,8 +152,7 @@ func _on_trivia_answered(success: bool) -> void:
 		sfx_player.play()
 		lbl_ball_letter.text = "¡BONUS!"
 	else:
-		# Sube el volumen (+5 dB le da un realce notable y claro)
-		sfx_player.volume_db = 6.0
+		sfx_player.volume_db = 5.0
 		sfx_player.stream = SFX_TRIVIA_WRONG
 		sfx_player.play()
 
@@ -167,11 +172,19 @@ func _play_pencil_sfx() -> void:
 	tw.tween_callback(player.queue_free)
 
 
+func _on_btn_back_menu_pressed() -> void:
+	is_auto_running = false
+	get_tree().change_scene_to_file(MAIN_MENU_PATH)
+
+
 func _setup_pro_styles() -> void:
+	# 1. Cabecera HUD: Chips de datos y cápsula táctil de Menú
 	_style_hud_chip(lbl_lives)
 	_style_hud_chip(lbl_coins)
 	_style_hud_chip(lbl_stars)
+	_style_hud_menu_button(btn_back_menu)
 
+	# 2. Panel Glassmorphism de la Tómbola
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.08, 0.11, 0.16, 0.88)
 	panel_style.corner_radius_top_left = 28
@@ -215,10 +228,55 @@ func _setup_pro_styles() -> void:
 	btn_draw_ball.add_theme_font_size_override("font_size", 24)
 	btn_draw_ball.custom_minimum_size = Vector2(0, 76)
 
-	_style_pill_button(btn_bingo, Color("#e11d48"), Color("#fb7185"), 26)
-	_style_pill_button(btn_change_env, Color("#1e293b"), Color("#475569"), 20)
+	# 3. Botones de Acción Inferiores (Equilibrados)
+	_style_pill_button(btn_bingo, Color("#e11d48"), Color("#fb7185"), 28)
+	_style_pill_button(btn_change_env, Color("#1e293b"), Color("#475569"), 22)
 
 	recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
+
+
+## Estilo Glassmorphism para el botón de menú en la cabecera
+func _style_hud_menu_button(btn: Button) -> void:
+	btn.add_theme_font_size_override("font_size", 20)
+	
+	var norm := StyleBoxFlat.new()
+	norm.bg_color = Color(0.12, 0.16, 0.24, 0.9)
+	norm.corner_radius_top_left = 20
+	norm.corner_radius_top_right = 20
+	norm.corner_radius_bottom_left = 20
+	norm.corner_radius_bottom_right = 20
+	norm.border_width_left = 2
+	norm.border_width_top = 2
+	norm.border_width_right = 2
+	norm.border_width_bottom = 2
+	norm.border_color = Color(1.0, 1.0, 1.0, 0.3)
+	norm.content_margin_left = 20
+	norm.content_margin_right = 20
+	norm.content_margin_top = 8
+	norm.content_margin_bottom = 8
+	norm.shadow_color = Color(0, 0, 0, 0.4)
+	norm.shadow_size = 6
+	btn.add_theme_stylebox_override("normal", norm)
+
+	var hov := norm.duplicate()
+	hov.bg_color = Color(0.20, 0.26, 0.38, 0.95)
+	hov.border_color = Color(1.0, 1.0, 1.0, 0.6)
+	btn.add_theme_stylebox_override("hover", hov)
+
+	var pres := norm.duplicate()
+	pres.bg_color = Color(0.08, 0.10, 0.15, 1.0)
+	btn.add_theme_stylebox_override("pressed", pres)
+
+	# Animación táctil
+	btn.pivot_offset = Vector2(50, 20)
+	btn.button_down.connect(func():
+		var tw := create_tween()
+		tw.tween_property(btn, "scale", Vector2(0.94, 0.94), 0.06)
+	)
+	btn.button_up.connect(func():
+		var tw := create_tween()
+		tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1)
+	)
 
 
 func _style_hud_chip(lbl: Label) -> void:
@@ -458,7 +516,6 @@ func _on_btn_bingo_pressed() -> void:
 	var win_data: Dictionary = card.check_win_patterns()
 	if win_data["has_won"]:
 		is_auto_running = false
-		_play_tone(950.0, 0.4)
 		GameManager.add_stars(5)
 		GameManager.add_coins(200)
 		btn_bingo.disabled = true
@@ -470,7 +527,6 @@ func _on_btn_bingo_pressed() -> void:
 
 func _on_game_over() -> void:
 	is_auto_running = false
-	_play_tone(150.0, 0.5)
 	end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
 
 

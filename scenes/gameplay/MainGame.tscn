@@ -59,6 +59,10 @@ theme_override_constants/separation = 24
 [node name="HUD" type="HBoxContainer" parent="SafeArea/MainLayout" unique_id=88051098]
 layout_mode = 2
 
+[node name="BtnBackMenu" type="Button" parent="SafeArea/MainLayout/HUD" unique_id=700119683]
+layout_mode = 2
+text = "⬅ MENÚ"
+
 [node name="LblLives" type="Label" parent="SafeArea/MainLayout/HUD" unique_id=153715864]
 layout_mode = 2
 
@@ -155,6 +159,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
 text = "¡CANTAR BINGO!"
 
 [node name="BtnChangeEnv" type="Button" parent="SafeArea/MainLayout/Actions" unique_id=1144024632]
