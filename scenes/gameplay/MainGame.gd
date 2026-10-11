@@ -321,7 +321,7 @@ func _apply_environment(env: GameManager.GameEnvironment) -> void:
 	match env:
 		GameManager.GameEnvironment.LOGIC_ACADEMY:
 			# Ambiente 1: Resort Costero
-			background.texture = load("res://assets/sprites/env_resort.png")
+			background.texture = load("res://assets/sprites/env_resort.jpeg")
 			if blur_overlay and blur_overlay.material:
 				blur_overlay.material.set_shader_parameter("tint_color", Color(0.06, 0.14, 0.10, 0.72))
 			btn_bingo.modulate = Color("#e5c158")
