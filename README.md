@@ -66,15 +66,22 @@ El proyecto sigue una adaptación modular del patrón **MVC (Modelo-Vista-Contro
 │   └── sprites/
 │       ├── env_resort.png           # Fondo: Resort Costero
 │       └── env_brick_town.png       # Fondo: Villa de Bloques
-└── scenes/
-	├── gameplay/
-	│   ├── MainGame.tscn
-	│   └── MainGame.gd
-	├── menus/
-	│   ├── MainMenu.tscn
-	│   └── MainMenu.gd
-	└── ui/
-		├── TriviaModal.tscn
-		├── TriviaModal.gd
-		├── EndGameModal.tscn
-		└── EndGameModal.gd
+├── scenes/
+│   ├── gameplay/
+│   │   ├── MainGame.tscn
+│   │   └── MainGame.gd
+│   ├── menus/
+│   │   ├── MainMenu.tscn
+│   │   └── MainMenu.gd
+│   └── ui/
+│       ├── TriviaModal.tscn
+│       ├── TriviaModal.gd
+│       ├── EndGameModal.tscn
+│       └── EndGameModal.gd
+└── scripts/
+	├── autoload/
+	│   └── GameManager.gd           # Gestor global de sesión y estado
+	└── gameplay/
+		├── BingoCard.gd             # Generación de matriz 5x5 y reglas de victoria
+		├── BingoTombola.gd          # Bombo y extracción de balotas (1-75)
+		└── TriviaManager.gd         # Banco de preguntas y validación
