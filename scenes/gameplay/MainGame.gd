@@ -1,49 +1,42 @@
 extends Control
 
-# Control de extracción continua (Tómbola automática)
 const DRAW_INTERVAL: float = 7.0
 var draw_timer: float = 3.0
 var is_auto_running: bool = true
 
-# Rutas de navegación
 const MAIN_MENU_PATH: String = "res://scenes/menus/MainMenu.tscn"
 
-# Referencias UI - Fondos
-@onready var background: TextureRect = $Background
-@onready var blur_overlay: ColorRect = $BlurOverlay
+# Referencias UI resueltas dinámicamente
+var background: TextureRect
+var blur_overlay: ColorRect
 
-# Referencias UI - HUD (Cabecera Superior)
-@onready var hud: HBoxContainer = $SafeArea/MainLayout/HUD
-@onready var btn_back_menu: Button = $SafeArea/MainLayout/HUD/BtnBackMenu
-@onready var lbl_lives: Label = $SafeArea/MainLayout/HUD/LblLives
-@onready var lbl_coins: Label = $SafeArea/MainLayout/HUD/LblCoins
-@onready var lbl_stars: Label = $SafeArea/MainLayout/HUD/LblStars
+var hud: Control
+var btn_back_menu: Button
+var lbl_lives: Label
+var lbl_coins: Label
+var lbl_stars: Label
 
-# Referencias UI - Tómbola
-@onready var tombola_section: PanelContainer = $SafeArea/MainLayout/TombolaSection
-@onready var ball_circle: PanelContainer = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle
-@onready var lbl_ball_letter: Label = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox/LblBallLetter
-@onready var lbl_ball_number: Label = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BallDisplay/BallCircle/BallVBox/LblBallNumber
-@onready var recent_balls_rack: HBoxContainer = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/RecentBallsRack
-@onready var btn_draw_ball: Button = $SafeArea/MainLayout/TombolaSection/Margin/TombolaVBox/BtnDrawBall
+var tombola_section: PanelContainer
+var ball_circle: PanelContainer
+var lbl_ball_letter: Label
+var lbl_ball_number: Label
+var recent_balls_rack: HBoxContainer
+var btn_draw_ball: Button
 
-# Referencias UI - Tablero y Acciones
-@onready var card_grid: GridContainer = $SafeArea/MainLayout/BoardContainer/CardGrid
-@onready var btn_bingo: Button = $SafeArea/MainLayout/Actions/BtnBingo
-@onready var btn_change_env: Button = $SafeArea/MainLayout/Actions/BtnChangeEnv
+var card_grid: GridContainer
+var btn_bingo: Button
+var btn_change_env: Button
 
-# Modales y Audio
-@onready var trivia_modal: Control = $UIOverlay/TriviaModal
-@onready var end_game_modal: Control = $UIOverlay/EndGameModal
-@onready var sfx_player: AudioStreamPlayer = $SFXPlayer
+var trivia_modal: Control
+var end_game_modal: Control
+var sfx_player: AudioStreamPlayer
 
-# Archivos de audio personalizados
-const SFX_TRIVIA_CORRECT: AudioStream = preload("res://assets/audio/trivia_correct.mp3")
-const SFX_TRIVIA_WRONG: AudioStream = preload("res://assets/audio/trivia_wrong.mp3")
-const SFX_BALL_DRAW: AudioStream = preload("res://assets/audio/ball_draw.mp3")
-const SFX_PENCIL: AudioStream = preload("res://assets/audio/pencil_mark.mp3")
+# Efectos de audio cargados de forma segura
+var sfx_trivia_correct: AudioStream
+var sfx_trivia_wrong: AudioStream
+var sfx_ball_draw: AudioStream
+var sfx_pencil: AudioStream
 
-# Instancias Lógicas
 var tombola: BingoTombola
 var card: BingoCard
 var trivia_manager: TriviaManager
@@ -57,19 +50,28 @@ func _ready() -> void:
 	card = BingoCard.new()
 	trivia_manager = TriviaManager.new()
 
-	# Conexiones con el GameManager
+	_bind_ui_nodes()
+	_load_all_audio_safely()
+
+	# Conexiones con GameManager
 	GameManager.lives_changed.connect(_update_hud)
 	GameManager.coins_changed.connect(_update_hud)
 	GameManager.stars_changed.connect(_update_hud)
 	GameManager.game_over.connect(_on_game_over)
+	GameManager.game_revived.connect(_on_game_revived)
 	GameManager.environment_changed.connect(_on_environment_changed)
 
-	# Botones y eventos
-	btn_draw_ball.pressed.connect(_on_toggle_auto_draw_pressed)
-	btn_bingo.pressed.connect(_on_btn_bingo_pressed)
-	btn_change_env.pressed.connect(_on_btn_change_env_pressed)
-	btn_back_menu.pressed.connect(_on_btn_back_menu_pressed)
-	trivia_modal.trivia_answered.connect(_on_trivia_answered)
+	# Conexiones de botones seguras
+	if btn_draw_ball:
+		btn_draw_ball.pressed.connect(_on_toggle_auto_draw_pressed)
+	if btn_bingo:
+		btn_bingo.pressed.connect(_on_btn_bingo_pressed)
+	if btn_change_env:
+		btn_change_env.pressed.connect(_on_btn_change_env_pressed)
+	if btn_back_menu:
+		btn_back_menu.pressed.connect(_on_btn_back_menu_pressed)
+	if trivia_modal:
+		trivia_modal.trivia_answered.connect(_on_trivia_answered)
 
 	_setup_pro_styles()
 	_build_visual_grid()
@@ -77,13 +79,67 @@ func _ready() -> void:
 	_update_hud()
 
 
-## Bucle de extracción continua con temporizador
+## Localiza los nodos en cualquier lugar del árbol sin depender de rutas rígidas
+func _bind_ui_nodes() -> void:
+	background = find_child("Background", true, false) as TextureRect
+	blur_overlay = find_child("BlurOverlay", true, false) as ColorRect
+	hud = find_child("HUD", true, false) as Control
+
+	btn_back_menu = find_child("BtnBackMenu", true, false) as Button
+	lbl_lives = find_child("LblLives", true, false) as Label
+	lbl_coins = find_child("LblCoins", true, false) as Label
+	lbl_stars = find_child("LblStars", true, false) as Label
+
+	tombola_section = find_child("TombolaSection", true, false) as PanelContainer
+	ball_circle = find_child("BallCircle", true, false) as PanelContainer
+	lbl_ball_letter = find_child("LblBallLetter", true, false) as Label
+	lbl_ball_number = find_child("LblBallNumber", true, false) as Label
+	recent_balls_rack = find_child("RecentBallsRack", true, false) as HBoxContainer
+	btn_draw_ball = find_child("BtnDrawBall", true, false) as Button
+
+	card_grid = find_child("CardGrid", true, false) as GridContainer
+	btn_bingo = find_child("BtnBingo", true, false) as Button
+	btn_change_env = find_child("BtnChangeEnv", true, false) as Button
+
+	trivia_modal = find_child("TriviaModal", true, false) as Control
+	end_game_modal = find_child("EndGameModal", true, false) as Control
+	sfx_player = find_child("SFXPlayer", true, false) as AudioStreamPlayer
+
+
+func _load_all_audio_safely() -> void:
+	sfx_trivia_correct = _find_audio([
+		"res://assets/audio/liecio-collect-points-190037.mp3",
+		"res://assets/audio/trivia_correct.mp3",
+		"res://assets/audio/trivia_correct.wav"
+	])
+	sfx_trivia_wrong = _find_audio([
+		"res://assets/audio/trivia_wrong.mp3",
+		"res://assets/audio/u_31vnwfmzt6-error-126627.mp3"
+	])
+	sfx_ball_draw = _find_audio([
+		"res://assets/audio/ball_draw.mp3",
+		"res://assets/audio/soundreality-bell-sound-effect-613873.mp3"
+	])
+	sfx_pencil = _find_audio([
+		"res://assets/audio/pencil_mark.mp3",
+		"res://assets/audio/u_xg7ssi08yr-writing-with-pencil-371358.mp3"
+	])
+
+
+func _find_audio(possible_paths: Array[String]) -> AudioStream:
+	for p in possible_paths:
+		if ResourceLoader.exists(p):
+			return load(p) as AudioStream
+	return null
+
+
 func _process(delta: float) -> void:
 	if not is_auto_running:
 		return
 	
 	draw_timer -= delta
-	btn_draw_ball.text = "PAUSAR TÓMBOLA  (%.1fs)" % max(draw_timer, 0.0)
+	if btn_draw_ball:
+		btn_draw_ball.text = "PAUSAR TÓMBOLA  (%.1fs)" % max(draw_timer, 0.0)
 
 	if draw_timer <= 0.0:
 		draw_timer = DRAW_INTERVAL
@@ -92,6 +148,9 @@ func _process(delta: float) -> void:
 
 func _on_toggle_auto_draw_pressed() -> void:
 	is_auto_running = not is_auto_running
+	if not btn_draw_ball:
+		return
+
 	if not is_auto_running:
 		btn_draw_ball.text = "REANUDAR TÓMBOLA"
 		btn_draw_ball.modulate = Color("#f39c12")
@@ -102,66 +161,88 @@ func _on_toggle_auto_draw_pressed() -> void:
 func _draw_next_ball() -> void:
 	var ball: int = tombola.draw_next_ball()
 	if ball == -1:
-		lbl_ball_number.text = "FIN"
+		if lbl_ball_number:
+			lbl_ball_number.text = "FIN"
 		is_auto_running = false
-		btn_draw_ball.disabled = true
-		btn_draw_ball.text = "TÓMBOLA VACÍA"
-		end_game_modal.show_game_over(false, "Se agotaron todas las balotas disponibles.")
+		if btn_draw_ball:
+			btn_draw_ball.disabled = true
+			btn_draw_ball.text = "TÓMBOLA VACÍA"
+		if end_game_modal:
+			end_game_modal.show_game_over(false, "Se agotaron todas las balotas disponibles.")
 		return
 
-	sfx_player.volume_db = 0.0
-	sfx_player.stream = SFX_BALL_DRAW
-	sfx_player.play()
+	if sfx_player:
+		if sfx_ball_draw:
+			sfx_player.volume_db = 0.0
+			sfx_player.stream = sfx_ball_draw
+			sfx_player.play()
+		else:
+			_play_tone(440.0, 0.08)
 
 	var info: Dictionary = _get_ball_info(ball)
-	lbl_ball_letter.text = info["letter"]
-	lbl_ball_number.text = "%02d" % ball
-	_style_ball(ball_circle, info["color"], info["border"])
-
-	var tween := create_tween()
-	ball_circle.scale = Vector2(0.4, 0.4)
-	tween.tween_property(ball_circle, "scale", Vector2(1.18, 1.18), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
+	if lbl_ball_letter:
+		lbl_ball_letter.text = info["letter"]
+	if lbl_ball_number:
+		lbl_ball_number.text = "%02d" % ball
+	if ball_circle:
+		_style_ball(ball_circle, info["color"], info["border"])
+		var tween := create_tween()
+		ball_circle.scale = Vector2(0.4, 0.4)
+		tween.tween_property(ball_circle, "scale", Vector2(1.18, 1.18), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(ball_circle, "scale", Vector2(1.0, 1.0), 0.12)
 
 	recent_balls.push_front(ball)
 	if recent_balls.size() > 5:
 		recent_balls.pop_back()
 	_update_recent_balls_rack()
 
-	# 20% de probabilidad de pausar la tómbola y lanzar trivia
 	if randf() <= 0.20:
 		is_auto_running = false
-		btn_draw_ball.text = "¡TRIVIA EN CURSO!"
+		if btn_draw_ball:
+			btn_draw_ball.text = "¡TRIVIA EN CURSO!"
 		_trigger_trivia()
 
 
 func _trigger_trivia() -> void:
 	var question_data: Dictionary = trivia_manager.get_random_question()
-	if not question_data.is_empty():
+	if not question_data.is_empty() and trivia_modal:
 		trivia_modal.open_trivia(question_data)
 
 
 func _on_trivia_answered(success: bool) -> void:
 	is_auto_running = true
 	draw_timer = DRAW_INTERVAL
-	btn_draw_ball.modulate = Color("#ffffff")
+	if btn_draw_ball:
+		btn_draw_ball.modulate = Color("#ffffff")
 	
 	if success:
-		sfx_player.volume_db = 0.0
-		sfx_player.stream = SFX_TRIVIA_CORRECT
-		sfx_player.play()
-		lbl_ball_letter.text = "¡BONUS!"
+		if sfx_player:
+			if sfx_trivia_correct:
+				sfx_player.volume_db = 0.0
+				sfx_player.stream = sfx_trivia_correct
+				sfx_player.play()
+			else:
+				_play_tone(880.0, 0.15)
+		if lbl_ball_letter:
+			lbl_ball_letter.text = "¡BONUS!"
 	else:
-		sfx_player.volume_db = 5.0
-		sfx_player.stream = SFX_TRIVIA_WRONG
-		sfx_player.play()
+		if sfx_player:
+			if sfx_trivia_wrong:
+				sfx_player.volume_db = 5.0
+				sfx_player.stream = sfx_trivia_wrong
+				sfx_player.play()
+			else:
+				_play_tone(200.0, 0.25)
 
 
-## Reproduce 2.0 segundos de lápiz con desvanecimiento suave al final
 func _play_pencil_sfx() -> void:
+	if not sfx_pencil:
+		_play_tone(660.0, 0.12)
+		return
+
 	var player := AudioStreamPlayer.new()
 	add_child(player)
-	player.stream = SFX_PENCIL
+	player.stream = sfx_pencil
 	player.volume_db = 0.0
 	var start_pos: float = randf_range(0.0, 18.0)
 	player.play(start_pos)
@@ -177,68 +258,183 @@ func _on_btn_back_menu_pressed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
 
+func _on_btn_change_env_pressed() -> void:
+	if GameManager.current_environment == GameManager.GameEnvironment.LOGIC_ACADEMY:
+		if GameManager.is_environment_unlocked(GameManager.GameEnvironment.CYBER_CASINO):
+			GameManager.set_environment(GameManager.GameEnvironment.CYBER_CASINO)
+		else:
+			_play_tone(220.0, 0.15)
+			if btn_change_env:
+				var tw := create_tween()
+				tw.tween_property(btn_change_env, "position:x", btn_change_env.position.x + 6, 0.04)
+				tw.tween_property(btn_change_env, "position:x", btn_change_env.position.x - 6, 0.04)
+				tw.tween_property(btn_change_env, "position:x", btn_change_env.position.x, 0.04)
+	else:
+		GameManager.set_environment(GameManager.GameEnvironment.LOGIC_ACADEMY)
+
+
+func _on_environment_changed(_env_name: String) -> void:
+	_apply_environment(GameManager.current_environment)
+
+
+func _apply_environment(env: GameManager.GameEnvironment) -> void:
+	if env == GameManager.GameEnvironment.LOGIC_ACADEMY:
+		if background:
+			background.texture = load("res://assets/sprites/env_resort.jpeg")
+		if blur_overlay and blur_overlay.material:
+			blur_overlay.material.set_shader_parameter("tint_color", Color(0.06, 0.14, 0.10, 0.72))
+		if btn_bingo:
+			btn_bingo.modulate = Color("#e5c158")
+		if btn_change_env:
+			btn_change_env.modulate = Color("#ffffff")
+	elif env == GameManager.GameEnvironment.CYBER_CASINO:
+		if background:
+			background.texture = load("res://assets/sprites/env_brick_town.png")
+		if blur_overlay and blur_overlay.material:
+			blur_overlay.material.set_shader_parameter("tint_color", Color(0.12, 0.08, 0.04, 0.72))
+		if btn_bingo:
+			btn_bingo.modulate = Color("#ff9900")
+		if btn_change_env:
+			btn_change_env.modulate = Color("#ffd166")
+
+
+func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
+	var cell_number: int = card.grid[row][col]
+	if tombola.has_been_drawn(cell_number):
+		if card.mark_cell(row, col):
+			_play_pencil_sfx()
+			
+			var tw := create_tween()
+			tw.tween_property(btn, "scale", Vector2(1.15, 1.15), 0.1).set_trans(Tween.TRANS_BACK)
+			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1)
+
+			btn.disabled = true
+			btn.text = "%d\n✔" % cell_number
+			
+			var marked_style := StyleBoxFlat.new()
+			marked_style.bg_color = Color("#065f46")
+			marked_style.corner_radius_top_left = 20
+			marked_style.corner_radius_top_right = 20
+			marked_style.corner_radius_bottom_left = 20
+			marked_style.corner_radius_bottom_right = 20
+			marked_style.border_width_top = 4
+			marked_style.border_color = Color("#34d399")
+			marked_style.shadow_color = Color(0, 0, 0, 0.4)
+			marked_style.shadow_size = 8
+			btn.add_theme_stylebox_override("disabled", marked_style)
+			btn.add_theme_color_override("font_disabled_color", Color("#d1fae5"))
+
+			GameManager.add_coins(10)
+	else:
+		_play_tone(220.0, 0.2)
+		var tw := create_tween()
+		tw.tween_property(btn, "position:x", btn.position.x + 8, 0.04)
+		tw.tween_property(btn, "position:x", btn.position.x - 8, 0.04)
+		tw.tween_property(btn, "position:x", btn.position.x, 0.04)
+		GameManager.lose_life()
+
+
+func _on_btn_bingo_pressed() -> void:
+	var win_data: Dictionary = card.check_win_patterns()
+	if win_data["has_won"]:
+		is_auto_running = false
+		GameManager.add_stars(5)
+		GameManager.add_coins(200)
+		if btn_bingo:
+			btn_bingo.disabled = true
+		if end_game_modal:
+			end_game_modal.show_game_over(true, "¡Patrón completado: %s!" % win_data["pattern"])
+	else:
+		_play_tone(180.0, 0.3)
+		GameManager.lose_life()
+
+
+func _on_game_over() -> void:
+	is_auto_running = false
+	if end_game_modal:
+		end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
+
+
+func _on_game_revived() -> void:
+	is_auto_running = true
+	draw_timer = 3.0
+	_update_hud()
+
+
+func _update_hud(_val: int = 0) -> void:
+	if lbl_lives:
+		lbl_lives.text = "❤  %d/%d" % [GameManager.lives, GameManager.MAX_LIVES]
+	if lbl_coins:
+		lbl_coins.text = "🪙  %d" % GameManager.coins
+	if lbl_stars:
+		lbl_stars.text = "⭐  %d" % GameManager.stars
+
+
 func _setup_pro_styles() -> void:
-	# 1. Cabecera HUD: Chips de datos y cápsula táctil de Menú
 	_style_hud_chip(lbl_lives)
 	_style_hud_chip(lbl_coins)
 	_style_hud_chip(lbl_stars)
 	_style_hud_menu_button(btn_back_menu)
 
-	# 2. Panel Glassmorphism de la Tómbola
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.11, 0.16, 0.88)
-	panel_style.corner_radius_top_left = 28
-	panel_style.corner_radius_top_right = 28
-	panel_style.corner_radius_bottom_left = 28
-	panel_style.corner_radius_bottom_right = 28
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.border_color = Color(1.0, 1.0, 1.0, 0.18)
-	panel_style.shadow_color = Color(0, 0, 0, 0.5)
-	panel_style.shadow_size = 18
-	panel_style.shadow_offset = Vector2(0, 8)
-	tombola_section.add_theme_stylebox_override("panel", panel_style)
+	if tombola_section:
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color = Color(0.08, 0.11, 0.16, 0.88)
+		panel_style.corner_radius_top_left = 28
+		panel_style.corner_radius_top_right = 28
+		panel_style.corner_radius_bottom_left = 28
+		panel_style.corner_radius_bottom_right = 28
+		panel_style.border_width_left = 2
+		panel_style.border_width_top = 2
+		panel_style.border_width_right = 2
+		panel_style.border_width_bottom = 2
+		panel_style.border_color = Color(1.0, 1.0, 1.0, 0.18)
+		panel_style.shadow_color = Color(0, 0, 0, 0.5)
+		panel_style.shadow_size = 18
+		panel_style.shadow_offset = Vector2(0, 8)
+		tombola_section.add_theme_stylebox_override("panel", panel_style)
 
-	ball_circle.custom_minimum_size = Vector2(180, 180)
-	ball_circle.pivot_offset = Vector2(90, 90)
-	_style_ball(ball_circle, Color("#2b3340"), Color("#475569"))
+	if ball_circle:
+		ball_circle.custom_minimum_size = Vector2(180, 180)
+		ball_circle.pivot_offset = Vector2(90, 90)
+		_style_ball(ball_circle, Color("#2b3340"), Color("#475569"))
 
-	lbl_ball_letter.text = "BINGO"
-	lbl_ball_letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_ball_letter.add_theme_font_size_override("font_size", 22)
+	if lbl_ball_letter:
+		lbl_ball_letter.text = "BINGO"
+		lbl_ball_letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl_ball_letter.add_theme_font_size_override("font_size", 22)
 
-	lbl_ball_number.text = "--"
-	lbl_ball_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl_ball_number.add_theme_font_size_override("font_size", 66)
+	if lbl_ball_number:
+		lbl_ball_number.text = "--"
+		lbl_ball_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl_ball_number.add_theme_font_size_override("font_size", 66)
 
-	var btn_draw_style := StyleBoxFlat.new()
-	btn_draw_style.bg_color = Color("#10b981")
-	btn_draw_style.corner_radius_top_left = 38
-	btn_draw_style.corner_radius_top_right = 38
-	btn_draw_style.corner_radius_bottom_left = 38
-	btn_draw_style.corner_radius_bottom_right = 38
-	btn_draw_style.border_width_top = 4
-	btn_draw_style.border_color = Color("#6ee7b7")
-	btn_draw_style.shadow_color = Color(0, 0, 0, 0.35)
-	btn_draw_style.shadow_size = 8
-	btn_draw_style.shadow_offset = Vector2(0, 5)
-	btn_draw_ball.add_theme_stylebox_override("normal", btn_draw_style)
-	btn_draw_ball.add_theme_font_size_override("font_size", 24)
-	btn_draw_ball.custom_minimum_size = Vector2(0, 76)
+	if btn_draw_ball:
+		var btn_draw_style := StyleBoxFlat.new()
+		btn_draw_style.bg_color = Color("#10b981")
+		btn_draw_style.corner_radius_top_left = 38
+		btn_draw_style.corner_radius_top_right = 38
+		btn_draw_style.corner_radius_bottom_left = 38
+		btn_draw_style.corner_radius_bottom_right = 38
+		btn_draw_style.border_width_top = 4
+		btn_draw_style.border_color = Color("#6ee7b7")
+		btn_draw_style.shadow_color = Color(0, 0, 0, 0.35)
+		btn_draw_style.shadow_size = 8
+		btn_draw_style.shadow_offset = Vector2(0, 5)
+		btn_draw_ball.add_theme_stylebox_override("normal", btn_draw_style)
+		btn_draw_ball.add_theme_font_size_override("font_size", 24)
+		btn_draw_ball.custom_minimum_size = Vector2(0, 76)
 
-	# 3. Botones de Acción Inferiores (Equilibrados)
 	_style_pill_button(btn_bingo, Color("#e11d48"), Color("#fb7185"), 28)
 	_style_pill_button(btn_change_env, Color("#1e293b"), Color("#475569"), 22)
 
-	recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
+	if recent_balls_rack:
+		recent_balls_rack.alignment = BoxContainer.ALIGNMENT_CENTER
 
 
-## Estilo Glassmorphism para el botón de menú en la cabecera
 func _style_hud_menu_button(btn: Button) -> void:
+	if not btn:
+		return
 	btn.add_theme_font_size_override("font_size", 20)
-	
 	var norm := StyleBoxFlat.new()
 	norm.bg_color = Color(0.12, 0.16, 0.24, 0.9)
 	norm.corner_radius_top_left = 20
@@ -267,7 +463,6 @@ func _style_hud_menu_button(btn: Button) -> void:
 	pres.bg_color = Color(0.08, 0.10, 0.15, 1.0)
 	btn.add_theme_stylebox_override("pressed", pres)
 
-	# Animación táctil
 	btn.pivot_offset = Vector2(50, 20)
 	btn.button_down.connect(func():
 		var tw := create_tween()
@@ -280,6 +475,8 @@ func _style_hud_menu_button(btn: Button) -> void:
 
 
 func _style_hud_chip(lbl: Label) -> void:
+	if not lbl:
+		return
 	var chip := StyleBoxFlat.new()
 	chip.bg_color = Color(0.06, 0.08, 0.12, 0.85)
 	chip.corner_radius_top_left = 20
@@ -302,6 +499,8 @@ func _style_hud_chip(lbl: Label) -> void:
 
 
 func _style_pill_button(btn: Button, fill: Color, border: Color, font_sz: int) -> void:
+	if not btn:
+		return
 	btn.custom_minimum_size.y = 80
 	btn.add_theme_font_size_override("font_size", font_sz)
 	
@@ -325,6 +524,8 @@ func _style_pill_button(btn: Button, fill: Color, border: Color, font_sz: int) -
 
 
 func _style_ball(panel: PanelContainer, fill_color: Color, border_color: Color) -> void:
+	if not panel:
+		return
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill_color
 	style.border_width_left = 6
@@ -356,6 +557,8 @@ func _get_ball_info(num: int) -> Dictionary:
 
 
 func _update_recent_balls_rack() -> void:
+	if not recent_balls_rack:
+		return
 	for c in recent_balls_rack.get_children():
 		c.queue_free()
 
@@ -378,6 +581,8 @@ func _update_recent_balls_rack() -> void:
 
 
 func _build_visual_grid() -> void:
+	if not card_grid:
+		return
 	for child in card_grid.get_children():
 		child.queue_free()
 	cell_buttons.clear()
@@ -476,94 +681,6 @@ func _style_gold_free_tile(btn: Button) -> void:
 	btn.add_theme_color_override("font_disabled_color", Color("#fef3c7"))
 
 
-func _on_cell_pressed(row: int, col: int, btn: Button) -> void:
-	var cell_number: int = card.grid[row][col]
-	if tombola.has_been_drawn(cell_number):
-		if card.mark_cell(row, col):
-			_play_pencil_sfx()
-			
-			var tw := create_tween()
-			tw.tween_property(btn, "scale", Vector2(1.15, 1.15), 0.1).set_trans(Tween.TRANS_BACK)
-			tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.1)
-
-			btn.disabled = true
-			btn.text = "%d\n✔" % cell_number
-			
-			var marked_style := StyleBoxFlat.new()
-			marked_style.bg_color = Color("#065f46")
-			marked_style.corner_radius_top_left = 20
-			marked_style.corner_radius_top_right = 20
-			marked_style.corner_radius_bottom_left = 20
-			marked_style.corner_radius_bottom_right = 20
-			marked_style.border_width_top = 4
-			marked_style.border_color = Color("#34d399")
-			marked_style.shadow_color = Color(0, 0, 0, 0.4)
-			marked_style.shadow_size = 8
-			btn.add_theme_stylebox_override("disabled", marked_style)
-			btn.add_theme_color_override("font_disabled_color", Color("#d1fae5"))
-
-			GameManager.add_coins(10)
-	else:
-		_play_tone(220.0, 0.2)
-		var tw := create_tween()
-		tw.tween_property(btn, "position:x", btn.position.x + 8, 0.04)
-		tw.tween_property(btn, "position:x", btn.position.x - 8, 0.04)
-		tw.tween_property(btn, "position:x", btn.position.x, 0.04)
-		GameManager.lose_life()
-
-
-func _on_btn_bingo_pressed() -> void:
-	var win_data: Dictionary = card.check_win_patterns()
-	if win_data["has_won"]:
-		is_auto_running = false
-		GameManager.add_stars(5)
-		GameManager.add_coins(200)
-		btn_bingo.disabled = true
-		end_game_modal.show_game_over(true, "¡Patrón completado: %s!" % win_data["pattern"])
-	else:
-		_play_tone(180.0, 0.3)
-		GameManager.lose_life()
-
-
-func _on_game_over() -> void:
-	is_auto_running = false
-	end_game_modal.show_game_over(false, "Te has quedado sin vidas.")
-
-
-func _on_btn_change_env_pressed() -> void:
-	if GameManager.current_environment == GameManager.GameEnvironment.LOGIC_ACADEMY:
-		GameManager.set_environment(GameManager.GameEnvironment.CYBER_CASINO)
-	else:
-		GameManager.set_environment(GameManager.GameEnvironment.LOGIC_ACADEMY)
-
-
-func _on_environment_changed(_env_name: String) -> void:
-	_apply_environment(GameManager.current_environment)
-
-
-func _apply_environment(env: GameManager.GameEnvironment) -> void:
-	match env:
-		GameManager.GameEnvironment.LOGIC_ACADEMY:
-			background.texture = load("res://assets/sprites/env_resort.jpeg")
-			if blur_overlay and blur_overlay.material:
-				blur_overlay.material.set_shader_parameter("tint_color", Color(0.06, 0.14, 0.10, 0.72))
-			btn_bingo.modulate = Color("#e5c158")
-			btn_change_env.modulate = Color("#ffffff")
-		
-		GameManager.GameEnvironment.CYBER_CASINO:
-			background.texture = load("res://assets/sprites/env_brick_town.png")
-			if blur_overlay and blur_overlay.material:
-				blur_overlay.material.set_shader_parameter("tint_color", Color(0.12, 0.08, 0.04, 0.72))
-			btn_bingo.modulate = Color("#ff9900")
-			btn_change_env.modulate = Color("#ffd166")
-
-
-func _update_hud(_val: int = 0) -> void:
-	lbl_lives.text = "❤  %d/%d" % [GameManager.lives, GameManager.MAX_LIVES]
-	lbl_coins.text = "🪙  %d" % GameManager.coins
-	lbl_stars.text = "⭐  %d" % GameManager.stars
-
-
 func _play_tone(freq: float, duration: float) -> void:
 	var sample_hz: float = 22050.0
 	var total_samples: int = int(sample_hz * duration)
@@ -579,5 +696,6 @@ func _play_tone(freq: float, duration: float) -> void:
 	stream.format = AudioStreamWAV.FORMAT_8_BITS
 	stream.mix_rate = int(sample_hz)
 	stream.data = pcm
-	sfx_player.stream = stream
-	sfx_player.play()
+	if sfx_player:
+		sfx_player.stream = stream
+		sfx_player.play()

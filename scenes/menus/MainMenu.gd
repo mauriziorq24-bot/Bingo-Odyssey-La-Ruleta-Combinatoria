@@ -23,9 +23,7 @@ func _ready() -> void:
 	_update_env_button_text()
 
 
-## Estilos modernos con estética Glassmorphism y botones 3D
 func _setup_pro_menu_ui() -> void:
-	# Tipografía moderna con sombras
 	lbl_title.add_theme_font_size_override("font_size", 72)
 	lbl_title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75))
 	lbl_title.add_theme_constant_override("shadow_offset_x", 4)
@@ -34,13 +32,8 @@ func _setup_pro_menu_ui() -> void:
 	lbl_subtitle.add_theme_font_size_override("font_size", 24)
 	lbl_subtitle.add_theme_color_override("font_color", Color("#d5e1df"))
 
-	# Botón Principal (Play) - Cápsula con brillo y sombra de profundidad
 	_style_arcade_button(btn_play, Color("#10b981"), Color("#34d399"), Color("#059669"), 36)
-	
-	# Botón Selector de Ambiente - Cristal oscuro con borde iluminado
-	_style_glass_button(btn_select_env, 24)
-	
-	# Botón Salir - Translúcido sutil
+	_style_glass_button(btn_select_env, 22)
 	_style_ghost_button(btn_quit, 20)
 
 
@@ -123,7 +116,6 @@ func _style_ghost_button(btn: Button, font_sz: int) -> void:
 	btn.add_theme_stylebox_override("hover", hov)
 
 
-## Efecto elástico de pulsación (Micro-interacción 2026)
 func _add_button_juice(btn: Button) -> void:
 	btn.pivot_offset = Vector2(btn.custom_minimum_size.x / 2.0, btn.custom_minimum_size.y / 2.0)
 	btn.button_down.connect(func():
@@ -143,7 +135,14 @@ func _on_btn_play_pressed() -> void:
 
 func _on_btn_select_env_pressed() -> void:
 	if GameManager.current_environment == GameManager.GameEnvironment.LOGIC_ACADEMY:
-		GameManager.set_environment(GameManager.GameEnvironment.CYBER_CASINO)
+		if GameManager.is_environment_unlocked(GameManager.GameEnvironment.CYBER_CASINO):
+			GameManager.set_environment(GameManager.GameEnvironment.CYBER_CASINO)
+		else:
+			# Efecto de sacudida si está bloqueado
+			var tw := create_tween()
+			tw.tween_property(btn_select_env, "position:x", btn_select_env.position.x + 6, 0.04)
+			tw.tween_property(btn_select_env, "position:x", btn_select_env.position.x - 6, 0.04)
+			tw.tween_property(btn_select_env, "position:x", btn_select_env.position.x, 0.04)
 	else:
 		GameManager.set_environment(GameManager.GameEnvironment.LOGIC_ACADEMY)
 	
@@ -151,8 +150,13 @@ func _on_btn_select_env_pressed() -> void:
 
 
 func _update_env_button_text() -> void:
+	var brick_unlocked := GameManager.is_environment_unlocked(GameManager.GameEnvironment.CYBER_CASINO)
+	
 	if GameManager.current_environment == GameManager.GameEnvironment.LOGIC_ACADEMY:
-		btn_select_env.text = "AMBIENTE: RESORT COSTERO"
+		if brick_unlocked:
+			btn_select_env.text = "AMBIENTE: RESORT COSTERO"
+		else:
+			btn_select_env.text = "RESORT (🔒 VILLA: %d/%d ⭐)" % [GameManager.stars, GameManager.BRICK_TOWN_STAR_REQUIREMENT]
 		btn_play.modulate = Color("#e5c158")
 	else:
 		btn_select_env.text = "AMBIENTE: VILLA DE BLOQUES"

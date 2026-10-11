@@ -1,95 +1,122 @@
 extends Node
 
-## GameManager: Administrador global de estado, economía y ambiente
+enum GameEnvironment { LOGIC_ACADEMY, CYBER_CASINO }
 
-# Señales para que la interfaz (HUD) se actualice automáticamente
-signal lives_changed(current_lives: int)
-signal coins_changed(current_coins: int)
-signal stars_changed(current_stars: int)
-signal game_over
-signal environment_changed(new_env_name: String)
-
-# Enumerador de los dos ambientes requeridos (renombrado para evitar conflicto con la clase nativa)
-enum GameEnvironment {
-	LOGIC_ACADEMY,   # Ambiente A: Pizarra, madera, estilo académico
-	CYBER_CASINO     # Ambiente B: Neón, espacial, estilo futurista
-}
-
-# Configuración inicial del jugador
 const MAX_LIVES: int = 3
+const SAVE_FILE_PATH: String = "user://save_data.json"
+const BRICK_TOWN_STAR_REQUIREMENT: int = 20
+const REVIVE_COIN_COST: int = 50
 
-var lives: int = MAX_LIVES:
-	set(value):
-		lives = clampi(value, 0, MAX_LIVES)
-		lives_changed.emit(lives)
-		if lives <= 0:
-			game_over.emit()
+signal lives_changed(new_lives: int)
+signal coins_changed(new_coins: int)
+signal stars_changed(new_stars: int)
+signal environment_changed(new_env: String)
+signal game_over
+signal game_revived
 
-var coins: int = 0:
-	set(value):
-		coins = maxi(0, value)
-		coins_changed.emit(coins)
-
-var stars: int = 0:
-	set(value):
-		stars = maxi(0, value)
-		stars_changed.emit(stars)
-
-# Bonus activos en la partida actual
-var active_bonuses: Dictionary = {
-	"double_coins": false,
-	"shield": false,         # Protege contra 1 respuesta incorrecta o fallo
-	"auto_mark": false       # Marca automáticamente una casilla al azar
-}
-
-# Ambiente actual por defecto
+var lives: int = MAX_LIVES
+var coins: int = 0
+var stars: int = 0
 var current_environment: GameEnvironment = GameEnvironment.LOGIC_ACADEMY
 
-# Registro de la partida actual
-var current_score: int = 0
+# Métricas de la partida en curso
 var trivia_correct_count: int = 0
 var trivia_total_count: int = 0
 
 
 func _ready() -> void:
-	print("GameManager inicializado correctamente.")
+	load_game_data()
 
 
-## Métodos de gestión económica y vidas
+## Reinicia los valores de la sesión de juego (incluidas las monedas a 0)
+func reset_game_session() -> void:
+	lives = MAX_LIVES
+	coins = 0
+	trivia_correct_count = 0
+	trivia_total_count = 0
+	
+	lives_changed.emit(lives)
+	coins_changed.emit(coins)
+	save_game_data()
+
+
 func add_coins(amount: int) -> void:
-	var multiplier: int = 2 if active_bonuses["double_coins"] else 1
-	coins += amount * multiplier
+	coins += amount
+	coins_changed.emit(coins)
+	save_game_data()
 
-func spend_coins(amount: int) -> bool:
-	if coins >= amount:
-		coins -= amount
-		return true
-	return false
 
 func add_stars(amount: int) -> void:
 	stars += amount
+	stars_changed.emit(stars)
+	save_game_data()
+
 
 func lose_life() -> void:
-	if active_bonuses["shield"]:
-		active_bonuses["shield"] = false
-		print("¡Escudo consumido! No se perdió vida.")
+	lives = max(lives - 1, 0)
+	lives_changed.emit(lives)
+	if lives <= 0:
+		game_over.emit()
+
+
+func can_revive() -> bool:
+	return coins >= REVIVE_COIN_COST and lives <= 0
+
+
+func try_revive() -> bool:
+	if can_revive():
+		coins -= REVIVE_COIN_COST
+		coins_changed.emit(coins)
+		lives = 1
+		lives_changed.emit(lives)
+		save_game_data()
+		game_revived.emit()
+		return true
+	return false
+
+
+func is_environment_unlocked(env: GameEnvironment) -> bool:
+	match env:
+		GameEnvironment.LOGIC_ACADEMY:
+			return true
+		GameEnvironment.CYBER_CASINO:
+			return stars >= BRICK_TOWN_STAR_REQUIREMENT
+	return false
+
+
+func set_environment(new_env: GameEnvironment) -> bool:
+	if is_environment_unlocked(new_env):
+		current_environment = new_env
+		environment_changed.emit(get_environment_name())
+		return true
+	return false
+
+
+func get_environment_name() -> String:
+	match current_environment:
+		GameEnvironment.LOGIC_ACADEMY:
+			return "Resort Costero"
+		GameEnvironment.CYBER_CASINO:
+			return "Villa de Bloques"
+	return "Desconocido"
+
+
+func save_game_data() -> void:
+	var file := FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
+	if file:
+		var data: Dictionary = {
+			"coins": coins,
+			"stars": stars
+		}
+		file.store_string(JSON.stringify(data))
+
+
+func load_game_data() -> void:
+	if not FileAccess.file_exists(SAVE_FILE_PATH):
 		return
-	lives -= 1
-
-func heal_life(amount: int = 1) -> void:
-	lives += amount
-
-## Cambio dinámico de ambientes
-func set_environment(env: GameEnvironment) -> void:
-	current_environment = env
-	var env_name: String = "LOGIC_ACADEMY" if env == GameEnvironment.LOGIC_ACADEMY else "CYBER_CASINO"
-	environment_changed.emit(env_name)
-	print("Ambiente cambiado a: ", env_name)
-
-## Reiniciar estado para una nueva partida
-func reset_game_session() -> void:
-	lives = MAX_LIVES
-	current_score = 0
-	active_bonuses["double_coins"] = false
-	active_bonuses["shield"] = false
-	active_bonuses["auto_mark"] = false
+	var file := FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
+	if file:
+		var parsed = JSON.parse_string(file.get_as_text())
+		if typeof(parsed) == TYPE_DICTIONARY:
+			coins = int(parsed.get("coins", 0))
+			stars = int(parsed.get("stars", 0))
