@@ -13,7 +13,7 @@ dest_files=["res://.godot/imported/trivia_wrong.mp3-dd6f67d2902d56c02b35a1a2af56
 [params]
 
 loop=false
-loop_offset=0
-bpm=0
+loop_offset=0.0
+bpm=0.0
 beat_count=0
 bar_beats=4

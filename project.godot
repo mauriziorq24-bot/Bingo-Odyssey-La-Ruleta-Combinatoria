@@ -22,6 +22,8 @@ GameManager="*uid://d14a3wl1r5cej"
 
 window/size/viewport_width=1080
 window/size/viewport_height=1920
+window/size/window_width_override=486
+window/size/window_height_override=864
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
@@ -39,3 +41,4 @@ pointing/emulate_touch_from_mouse=true
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
